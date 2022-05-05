@@ -26,3 +26,4 @@ include_directories(core/include)
 
 # the subprojects. core is the most important, as it provides the library used for all the other projects that contains basic tasks always needed
 add_subdirectory(warm_up)
+add_subdirectory(Quark_Photon_Vertex)
