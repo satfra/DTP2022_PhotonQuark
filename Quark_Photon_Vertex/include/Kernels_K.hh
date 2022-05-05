@@ -221,5 +221,20 @@ class K
 	}
 
 
+		double get(int i, int j)
+		{
+			if (i < 8 && j < 8)
+			{
+				return Kupper[i][j];
+			}
 
+			else if (i >= 8 && j >= 8)
+			{
+				return Klower[i][j];
+			}
+
+			else {
+				return 0;
+			}
+		}
 }
