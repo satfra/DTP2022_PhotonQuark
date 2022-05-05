@@ -156,7 +156,8 @@ class K
 
 	}
 
-	using submatrix = vector<vector<double>>;
+	using submatrixrow = vector<double>;
+	using submatrix = vector<submatrixrow>;
 
 	submatrix Kupper;
 	submatrix Klower;
@@ -167,9 +168,9 @@ class K
 	public:
 		K( double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
 	{
-			Kupper.resize(8, submatrix(8));
+			Kupper.resize(8, submatrixrow(8));
 
-			Klower.resize(4, submatrix(4));
+			Klower.resize(4, submatrixrow(4));
 
 
 			Kupper[0][0] = K11(y, l2, u, uprime, V, w, wprime, X);
