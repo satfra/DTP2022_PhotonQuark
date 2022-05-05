@@ -11,7 +11,7 @@ constexpr RF powr(const RF& x)
   if constexpr (n == 0)
     return 1.;
   else if constexpr (n < 0)
-    return powr<-n>(x);
+    return 1.0 / powr<-n>(x);
   else
     return x * powr<n-1>(x);
 }
