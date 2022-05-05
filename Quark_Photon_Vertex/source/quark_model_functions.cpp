@@ -18,7 +18,7 @@ double quark_m_function_model(double x)
  * This is the running coupling used in the Maris-Tandy model. This version
  * has been taken from 1606.09602v2.
  */
-double dressing_model_gamma_gamma(double p_squared, double eta, double lambda)
+double maris_tandy_alpha(double p_squared, double eta, double lambda)
 {
     const double lambda_qcd = 0.234;
     const double lambda_0 = 1.0;
@@ -33,4 +33,14 @@ double dressing_model_gamma_gamma(double p_squared, double eta, double lambda)
             (lambda_qcd * lambda_qcd)) * (1.0 + p_squared /
             (lambda_qcd * lambda_qcd)));
     return irterm + uvterm;
+}
+
+// This is just the function g(k^2) from eq. 19 in the project description,
+// i.e. the function alpha(k^2) with some constant factors
+double maris_tandy_g(double p_squared, double eta, double lambda)
+{
+    const double z_2 = 0.97; // For now this is our go-to value. Has to be
+                             // adjusted when we use the real propagator.
+
+    return z_2 * z_2 * 16.0 * M_PI * maris_tandy_alpha(p_squared, eta, lambda) / (3.0 * p_squared);
 }
