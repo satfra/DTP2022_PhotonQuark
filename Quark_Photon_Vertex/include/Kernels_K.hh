@@ -4,14 +4,14 @@ using namespace std;
 
 double K11(double y,double l2, double u, double uprime, double V, double w, double wprime, double X)
 {
-	return -(1. + y * y) / 2 - y(1 - y)*X;
+	return -(1. + y * y) / 2 - y*(1 - y)*X;
 }
 
 
 
 double K22(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
 {
-	return -(1. + y * y) / 2 (1.- 2. * l2 * V*V) + y(1. * y * y)* X ;
+	return -(1. + y * y) / 2. *  (1.- 2. * l2 * V*V) + y(1. * y * y)* X ;
 }
 
 
@@ -36,13 +36,13 @@ double K55(double y, double l2, double u, double uprime, double V, double w, dou
 
 double K66(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
 {
-	return -y * (1. + 2. * l2 * V*V)*;
+	return -y * (1. + 2. * l2 * V*V);
 }
 
 
 double K77(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
 {
-	return - y*y * (3. + 2. * l2 * V*V);
+	return - y*y * (3. + 2. * l2 * V*V) + 2.*y*(1. - y * y) *X ;
 }
 
 double K88(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
@@ -78,7 +78,7 @@ double K23(double y, double l2, double u, double uprime, double V, double w, dou
 
 double K32(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
 {
-	return -(2. * y * uprime - (1 + y * y)* u) * V;;
+	return -(2. * y * uprime - (1. + y * y)* u) * V;
 }
 
 double K67(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
@@ -291,5 +291,5 @@ K(int i, int j, double y, double l2, double u, double uprime, double V, double w
 
 	}
 
-	return 0;
+	return 0.;
 }
