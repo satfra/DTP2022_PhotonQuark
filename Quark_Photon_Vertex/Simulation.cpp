@@ -54,24 +54,12 @@ void cfo(unsigned o)
 
 int main(int argc, char* argv[])
 {
-  cfo(100);
+  constexpr unsigned order_Q = 10;
+  constexpr unsigned order_k = 10;
 
-  auto fun = [](const auto& x){ return 0.2/(x + 0.5) + 0.002;};
-  constexpr unsigned N = 10;
-
-  std::vector<double> x(N);
-  std::vector<double> z(N);
-  std::vector<double> f(N);
-
-  for(unsigned i = 0; i < N; ++i)
-  {
-    z[i] = -1. + 2.*i / double(N);
-    f[i] = fun(z[i]);
-    std::cout << z[i] << " - " << f[i] << "\n";
-  }
-
-  auto z1(x); 
-  std::for_each(z1.begin(), z1.end(), [](auto& v){ v = powr<1>((v-1)/(v+1)); });
+  qIntegral2d<LegendrePolynomial<order_k>, LegendrePolynomial<order_Q>> qint;
+  auto f = [](const double& k, const double& Q){ return 2.; };
+  std::cout << "We get " << qint(f, 0., 1., 0., 2.) << "\n";
 
   return 0;
 }
