@@ -1,4 +1,3 @@
-#include "quark_model_functions.h"
 #include "cmath"
 
 // The model for A(x) given in the project description
