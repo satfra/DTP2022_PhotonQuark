@@ -1,23 +1,13 @@
 #pragma once
-#include <math.h>
 
-// your code
-using namespace std
+#include <cmath>
 
-double a0 (int i)
+double a0 (unsigned i)
 {
- if (i==1)
-  { 
-   return sqrt(2);
-  }
-  
+  if (i==1)
+    return std::sqrt(2.);
   else if (i==7 || i==10)
-   {
     return 1;
-   }
-   
   else 
-   {
     return 0;
-   }
 }
