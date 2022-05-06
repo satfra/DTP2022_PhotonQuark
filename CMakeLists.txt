@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall")
 
 set(CXX_COMPILER_LIBS "" CACHE FILEPATH "Path to cpp compiler libs")
 link_directories(${CXX_COMPILER_LIBS})
