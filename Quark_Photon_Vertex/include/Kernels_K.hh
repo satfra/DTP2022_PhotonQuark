@@ -7,143 +7,143 @@ using namespace std;
 
 class K
 {
-  double K11(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K11(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -(1. + y * y) / 2 - y * (1 - y)*X;
   }
 
-  double K22(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K22(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -(1. + y * y) / 2. *  (1. - 2. * l2 * V*V) + y*(1. * y * y)* X;
   }
 
-  double K33(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K33(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  y * (1. - 2. * l2 * V*V) - (1. - y * y)* X;
   }
 
-  double K44(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K44(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return y + (1. - y * y) * X;
   }
 
-  double K55(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K55(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return 3. * y;
   }
 
-  double K66(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K66(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -y * (1. + 2. * l2 * V*V);
   }
 
-  double K77(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K77(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -y * y * (3. + 2. * l2 * V*V) + 2.*y*(1. - y * y) *X;
   }
 
-  double K88(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K88(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return y * y - 2. * y * (1. - y * y) * X;
   }
 
-  double K16(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K16(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return sqrt(2.) * (1. - y * y)* uprime * V;
   }
 
-  double K61(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K61(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -sqrt(2.) * (1. - y * y)* u * V;
   }
 
-  double K17(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K17(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -(1. - y * y) / sqrt(2.) * (1. + 2 * wprime * 2.*y * X)* uprime * V;
   }
 
-  double K71(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K71(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -(1. - y * y) / sqrt(2.) * (1. + 2 * w * 2.*y * X)* uprime * V;
 
   }
 
-  double K23(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K23(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return (2. * y * u - (1 + y * y)* uprime) * V;
   }
 
-  double K32(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K32(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -(2. * y * uprime - (1. + y * y)* u) * V;
   }
 
-  double K67(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K67(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return 2. * y * (uprime - y * u)*V;
   }
 
-  double K76(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K76(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -2. * y * (u - y * uprime)*V;
 
   }
 
-  double K28(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K28(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return K71(y, l2, u, uprime, V, w, wprime, X)
       + sqrt(2.)* (1. - y * y);
 
   }
-  double K82(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K82(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return K17(y, l2, u, uprime, V, w, wprime, X)
       + sqrt(2.)* (1. - y * y);
 
   }
-  double K38(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K38(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -K61(y, l2, u, uprime, V, w, wprime, X);
 
   }
-  double K83(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K83(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -K16(y, l2, u, uprime, V, w, wprime, X);
 
   }
 
-  double K99(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K99(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K55(y, l2, u, uprime, V, w, wprime, X) / y;
 
   }
 
 
-  double K1010(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K1010(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K66(y, l2, u, uprime, V, w, wprime, X) / y;
 
   }
 
-  double K1011(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K1011(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K67(y, l2, u, uprime, V, w, wprime, X) / y;
 
   }
 
-  double K1110(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K1110(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K76(y, l2, u, uprime, V, w, wprime, X) / y;
 
   }
 
-  double K1111(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K1111(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K77(y, l2, u, uprime, V, w, wprime, X) / y;
 
   }
 
-  double K1212(double y, double l2, double u, double uprime, double V, double w, double wprime, double X)
+  double K1212(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K88(y, l2, u, uprime, V, w, wprime, X) / y;
 
@@ -206,12 +206,14 @@ class K
     Klower[3][3] = K1212(y, l2, u, uprime, V, w, wprime, X);
   }
 
-    const double& get(const int& i, const int& j)
+    const double& get(const unsigned& i, const unsigned& j) const
     {
-      if (i < 8 && j < 8)
+      if (i > 11 || j > 11)
+        throw std::runtime_error("Function get(..) out of range in Kernels_K");
+      else if (i < 8 && j < 8)
         return Kupper[i][j];
       else if (i >= 8 && j >= 8)
-        return Klower[i][j];
+        return Klower[i-8][j-8];
       return zero;
     }
 };

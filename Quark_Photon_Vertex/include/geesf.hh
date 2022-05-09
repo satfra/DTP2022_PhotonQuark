@@ -1,25 +1,25 @@
 #pragma once
-#include <cmath.hh>
+#include <cmath>
 
 // your code
 using namespace std
 
-double g1 (const double a10, const double a11, const double z, const double s)
+double g1 (const double& a10, const double& a11, const double& z, const double& s)
 {
  return a10-(z/s)*a11;
 }
 
-double g2 (const double k, const double a11, const double z, const double s)
+double g2 (const double& k, const double& a11, const double& z, const double& s)
 {
  return a11/(k*k*z*s);
 }
 
-double g3 (const double k, const double a9, const double z) //g3 it's actually immaginary and we shouldn't forget about that!!
+double g3 (const double& k, const double& a9, const double& z) //g3 it's actually immaginary and we shouldn't forget about that!!
 {
  return a9/(k*z);
 }
 
-double g4 (const double k, const double a12, const double z, const double s, const double Q) //also g4 is immaginary
+double g4 (const double& k, const double& a12, const double& z, const double& s, const double& Q) //also g4 is immaginary
 {
  return a12/(k*k*Q*s*z);
 }
