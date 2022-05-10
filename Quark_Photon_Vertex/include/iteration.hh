@@ -36,20 +36,28 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     bool a_converged = false;
     bool b_converged = false;
 
-    // Generate the K kernel, so we don't have to do a lot of function calls
-    // Inside the iterations
-    const unsigned int k_dimension = n_structs * n_structs * k_steps * k_steps * z_steps * z_steps * y_steps * q_steps;
-
     // Do some Legendre Magic
     constexpr unsigned order_z_prime = 10;
     constexpr unsigned order_k_prime = 30;
     constexpr unsigned order_y = 6;
     qIntegral3d <LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
+    // If only one of a and b is converged, this counter will start counting the amount of iterations this is the
+    // case for. If this happens for too many iterations, it might be a good idea to check, if the other functions
+    // will change again. Thus, they converged flags will be turned off again, once this reaches a certain value.
+    unsigned int suspicion_counter = 0;
+    constexpr unsigned int max_sus_counter = 10;
     while (!a_converged && !b_converged && max_steps > current_step) {
-        // For now this will be for a fixed value of q_sq.
-        const std::complex<double> a_old = a[0][0][0];
+        if(a_converged != b_converged) {
+            ++suspicion_counter;
+        } else {
+            suspicion_counter = 0;
+        }
 
+        const std::complex<double> a_old = a[0][0][0];
+        const std::complex<double> b_old = b[0][0][0];
+
+        // loop over q
         for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
             const double q_sq = q_grid[q_iter];
             // loop over i
@@ -61,67 +69,70 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                     for (unsigned int z_idx = 0; z_idx < z_steps; ++z_idx) {
                         const double z = z_grid[z_idx];
 
-                        /*
-             _                              _        _            _            _           _                 _          _          _            _
-            / /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
-           / /  \                          \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
-          / / /\ \                         /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
-         / / /\ \ \        ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
-        / / /  \ \ \     /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
-       / / /___/ /\ \    \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
-      / / /_____/ /\ \                 / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
-     / /_________/\ \ \            ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
-    / / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
-    \_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
-                         */
-                        // Initialize the a's with the inhomogeneous term
-                        a[i][k_idx][z_idx] = z_2 * a0(i);
+                        if (!a_converged || suspicion_counter >= max_sus_counter) {
+                            /*
+                 _                              _        _            _            _           _                 _          _          _            _
+                / /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
+               / /  \                          \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
+              / / /\ \                         /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
+             / / /\ \ \        ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
+            / / /  \ \ \     /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
+           / / /___/ /\ \    \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
+          / / /_____/ /\ \                 / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
+         / /_________/\ \ \            ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
+        / / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
+        \_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
+                             */
+                            // Initialize the a's with the inhomogeneous term
+                            a[i][k_idx][z_idx] = z_2 * a0(i);
 
-                        // loop over j
-                        for (unsigned int j = 0; j < n_structs; ++j) {
-                            // The function to integrate
-                            auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
-                                const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
-                                const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
-                                K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
-                                // TODO: Make this work with the interface provided by Jonas
-                                const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
+                            // loop over j
+                            for (unsigned int j = 0; j < n_structs; ++j) {
+                                // The function to integrate
+                                auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
+                                    const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
+                                    const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
+                                    K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                                    // TODO: Make this work with the interface provided by Jonas
+                                    const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
 
-                                return gl * k_kernel.get(i, j) * b_j;
-                            };
+                                    return gl * k_kernel.get(i, j) * b_j;
+                                };
 
-                            // Evaluate the integral
-                            const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
-                                                                       k_grid[k_steps - 1], y_grid[0],
-                                                                       y_grid[y_steps - 1]);
+                                // Evaluate the integral
+                                const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
+                                                                           k_grid[k_steps - 1], y_grid[0],
+                                                                           y_grid[y_steps - 1]);
 
-                            // Add this to the a's
-                            a[i][k_idx][z_idx] += integral;
+                                // Add this to the a's
+                                a[i][k_idx][z_idx] += integral;
+                            }
                         }
 
+                        if (!b_converged || suspicion_counter >= max_sus_counter) {
+                            /*
+               _                           _        _            _            _           _                 _          _          _            _
+              / /\                        /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
+             / /  \                       \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
+            / / /\ \                      /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
+           / / /\ \ \     ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
+          / / /\ \_\ \  /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
+         / / /\ \ \___\ \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
+        / / /  \ \ \__/               / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
+       / / /____\_\ \             ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
+      / / /__________\           /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
+      \/_____________/           \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
 
-                        /*
-           _                           _        _            _            _           _                 _          _          _            _
-          / /\                        /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
-         / /  \                       \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
-        / / /\ \                      /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
-       / / /\ \ \     ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
-      / / /\ \_\ \  /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
-     / / /\ \ \___\ \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
-    / / /  \ \ \__/               / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
-   / / /____\_\ \             ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
-  / / /__________\           /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
-  \/_____________/           \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
+                             */
+                            // Initialize the b's to 0
+                            b[i][k_idx][z_idx] = 0.0;
 
-                         */
-                        // Initialize the b's to 0
-                        b[i][k_idx][z_idx] = 0.0;
-
-                        // Evaluate Gij
-                        G g_kernel(k_sq, z, q_sq);
-                        for (int j = 0; j < n_structs; ++j) {
-                            // Add stuff to the b's
-                            b[i][k_idx][z_idx] += g_kernel.get(i, j) * a[j][k_idx][z_idx];
+                            // Evaluate Gij
+                            G g_kernel(k_sq, z, q_sq);
+                            for (unsigned int j = 0; j < n_structs; ++j) {
+                                // Add stuff to the b's
+                                b[i][k_idx][z_idx] += g_kernel.get(i, j) * a[j][k_idx][z_idx];
+                            }
                         }
                     }
                 }
@@ -129,7 +140,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             // TODO: Do a better error estimation
             const std::complex<double> a_new = a[0][0][0];
+            const std::complex<double> b_new = b[0][0][0];
             current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
+            current_acc_b = abs(b_new - b_old) / abs(b_new + b_old);
             if (current_acc_a < target_acc) a_converged = true;
             if (current_acc_b < target_acc) b_converged = true;
             ++current_step;
