@@ -3,6 +3,7 @@
 #include "coeff.hh"
 #include "Kernels_G.hh"
 #include "Kernels_K.hh"
+#include "quark_model_functions.hh"
 
 typedef std::vector<std::complex<double>> vec_cmplx;
 typedef std::vector<vec_cmplx> mat_cmplx;
@@ -37,6 +38,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // Inside the iterations
     const unsigned int k_dimension = n_structs * n_structs * k_steps * k_steps * z_steps * z_steps * y_steps * q_steps;
 
+    // Do some Legendre Magic
+    constexpr unsigned order_z_prime = 10;
+    constexpr unsigned order_k_prime = 30;
+    qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint;
+
     while (current_acc > target_acc && max_steps > current_step) {
         ++current_step;
         // For now this will be for a fixed value of q_sq. TODO: Generalize this
@@ -56,9 +62,23 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
                     // loop over j
                     for (unsigned int j = 0; j < n_structs; ++j) {
+                        // The function to integrate
+                        auto f = [const &](const double& k_prime_sq, const double& z_prime){
+                            const double l_sq = k_sq + k_prime_sq - 2.0 * std::sqrt(k_prime_sq * k_sq);
+                            const double gl = maris_tandy_g(l_sq);
+                            const K k_kernel = new K(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                            const double b_j = interpolate2d(b[j], k_prime_sq, z_prime);
 
+                            return gl * k_kernel.get(i, j) * b_j;
+                        };
+
+                        // Evaluate the integral
+                        const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps-1], k_grid[0],
+                                                                                        k_grid[k_steps-1]);
+
+                        // Add this to the a's
+                        a[i][k_idx][z_idx] += integral;
                     }
-
                 }
             }
         }
