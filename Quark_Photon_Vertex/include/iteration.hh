@@ -6,13 +6,13 @@
 #include "quark_model_functions.hh"
 #include "momentumtransform.hh"
 
-typedef std::vector<std::complex<double>> vec_cmplx;
-typedef std::vector<vec_cmplx> mat_cmplx;
-typedef std::vector<mat_cmplx> tens_cmplx;
+typedef std::vector <std::complex<double>> vec_cmplx;
+typedef std::vector <vec_cmplx> mat_cmplx;
+typedef std::vector <mat_cmplx> tens_cmplx;
 typedef std::vector<double> vec_double;
 
-void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double & y_grid)
-{
+void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
+                     const vec_double &y_grid) {
     // Model value for Z_2. Must be updated once we use a real quark.
     constexpr double z_2 = 0.97;
 
@@ -44,59 +44,60 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     constexpr unsigned order_z_prime = 10;
     constexpr unsigned order_k_prime = 30;
     constexpr unsigned order_y = 6;
-    qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
+    qIntegral3d <LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
     while (!a_converged && !b_converged && max_steps > current_step) {
         // For now this will be for a fixed value of q_sq.
-        // TODO: Generalize this by looping over q_sq
-        const double q_sq = 0.0;
         const std::complex<double> a_old = a[0][0][0];
 
-        // loop over i
-        for (unsigned int i = 0; i < n_structs; ++i) {
-            // loop over k
-            for (unsigned int k_idx = 0; k_idx < k_steps; ++k_idx) {
-                const double k_sq = k_grid[k_idx];
-                // loop over z
-                for (unsigned int z_idx = 0; z_idx < z_steps; ++z_idx) {
-                    const double z = z_grid[z_idx];
+        for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+            const double q_sq = q_grid[q_iter];
+            // loop over i
+            for (unsigned int i = 0; i < n_structs; ++i) {
+                // loop over k
+                for (unsigned int k_idx = 0; k_idx < k_steps; ++k_idx) {
+                    const double k_sq = k_grid[k_idx];
+                    // loop over z
+                    for (unsigned int z_idx = 0; z_idx < z_steps; ++z_idx) {
+                        const double z = z_grid[z_idx];
 
-                    /*
-         _                              _        _            _            _           _                 _          _          _            _
-        / /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
-       / /  \                          \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
-      / / /\ \                         /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
-     / / /\ \ \        ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
-    / / /  \ \ \     /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
-   / / /___/ /\ \    \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
-  / / /_____/ /\ \                 / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
- / /_________/\ \ \            ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
-/ / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
-\_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
-                     */
-                    // Initialize the a's with the inhomogeneous term
-                    a[i][k_idx][z_idx] = z_2 * a0(i);
+                        /*
+             _                              _        _            _            _           _                 _          _          _            _
+            / /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
+           / /  \                          \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
+          / / /\ \                         /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
+         / / /\ \ \        ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
+        / / /  \ \ \     /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
+       / / /___/ /\ \    \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
+      / / /_____/ /\ \                 / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
+     / /_________/\ \ \            ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
+    / / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
+    \_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
+                         */
+                        // Initialize the a's with the inhomogeneous term
+                        a[i][k_idx][z_idx] = z_2 * a0(i);
 
-                    // loop over j
-                    for (unsigned int j = 0; j < n_structs; ++j) {
-                        // The function to integrate
-                        auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
-                            const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
-                            const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
-                            K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
-                            // TODO: Make this work with the interface provided by Jonas
-                            const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
+                        // loop over j
+                        for (unsigned int j = 0; j < n_structs; ++j) {
+                            // The function to integrate
+                            auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
+                                const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
+                                const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
+                                K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                                // TODO: Make this work with the interface provided by Jonas
+                                const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
 
-                            return gl * k_kernel.get(i, j) * b_j;
-                        };
+                                return gl * k_kernel.get(i, j) * b_j;
+                            };
 
-                        // Evaluate the integral
-                        const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
-                                                                   k_grid[k_steps - 1], y_grid[0], y_grid[y_steps - 1]);
+                            // Evaluate the integral
+                            const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
+                                                                       k_grid[k_steps - 1], y_grid[0],
+                                                                       y_grid[y_steps - 1]);
 
-                        // Add this to the a's
-                        a[i][k_idx][z_idx] += integral;
-                    }
+                            // Add this to the a's
+                            a[i][k_idx][z_idx] += integral;
+                        }
 
 
                         /*
@@ -126,11 +127,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 }
             }
 
-        // TODO: Do a better error estimation
-        const std::complex<double> a_new = a[0][0][0];
-        current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
-        if(current_acc_a < target_acc) a_converged = true;
-        if(current_acc_b < target_acc) b_converged = true;
-        ++current_step;
+            // TODO: Do a better error estimation
+            const std::complex<double> a_new = a[0][0][0];
+            current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
+            if (current_acc_a < target_acc) a_converged = true;
+            if (current_acc_b < target_acc) b_converged = true;
+            ++current_step;
+        }
     }
 }
