@@ -4,8 +4,6 @@
 #include <vector>
 #include <momentumtransform.hh>
 
-using namespace std;
-
 class K
 {
   double K11(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
@@ -50,22 +48,22 @@ class K
 
   double K16(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
-    return sqrt(2.) * (1. - y * y)* uprime * V;
+    return std::sqrt(2.) * (1. - y * y)* uprime * V;
   }
 
   double K61(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
-    return -sqrt(2.) * (1. - y * y)* u * V;
+    return -std::sqrt(2.) * (1. - y * y)* u * V;
   }
 
   double K17(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
-    return -(1. - y * y) / sqrt(2.) * (1. + 2 * wprime * 2.*y * X)* uprime * V;
+    return -(1. - y * y) / std::sqrt(2.) * (1. + 2 * wprime * 2.*y * X)* uprime * V;
   }
 
   double K71(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
-    return -(1. - y * y) / sqrt(2.) * (1. + 2 * w * 2.*y * X)* uprime * V;
+    return -(1. - y * y) / std::sqrt(2.) * (1. + 2 * w * 2.*y * X)* uprime * V;
 
   }
 
@@ -93,37 +91,31 @@ class K
   double K28(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return K71(y, l2, u, uprime, V, w, wprime, X)
-      + sqrt(2.)* (1. - y * y);
-
+      + std::sqrt(2.)* (1. - y * y);
   }
   double K82(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return K17(y, l2, u, uprime, V, w, wprime, X)
-      + sqrt(2.)* (1. - y * y);
-
+      + std::sqrt(2.)* (1. - y * y);
   }
   double K38(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -K61(y, l2, u, uprime, V, w, wprime, X);
-
   }
   double K83(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return -K16(y, l2, u, uprime, V, w, wprime, X);
-
   }
 
   double K99(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K55(y, l2, u, uprime, V, w, wprime, X) / y;
-
   }
 
 
   double K1010(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K66(y, l2, u, uprime, V, w, wprime, X) / y;
-
   }
 
   double K1011(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
@@ -135,19 +127,16 @@ class K
   double K1110(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K76(y, l2, u, uprime, V, w, wprime, X) / y;
-
   }
 
   double K1111(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K77(y, l2, u, uprime, V, w, wprime, X) / y;
-
   }
 
   double K1212(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return  K88(y, l2, u, uprime, V, w, wprime, X) / y;
-
   }
 
   using submatrixrow = std::vector<double>;
@@ -170,7 +159,7 @@ class K
     const double V = momentumtransform::V(k_sq, k_sq_prime, z, z_prime, l2);
     const double w = momentumtransform::w(u, l2);
     const double wprime = momentumtransform::w(uprime, l2);
-    const double X = momentumtransform::w(u, uprime, l2);
+    const double X = momentumtransform::X(u, uprime, l2);
 
     Kupper[0][0] = K11(y, l2, u, uprime, V, w, wprime, X);
 
