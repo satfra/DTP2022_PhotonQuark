@@ -28,9 +28,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const mat_cmplx temp3(k_steps, temp0);
     const tens_cmplx temp4(n_structs, temp2);
     const tens_cmplx temp5(n_structs, temp3);
-    qtens_complex a(q_steps, temp4);
-    qtens_complex b(q_steps, temp5);
-    // TODO: Add q-index to a and b and add it everywhere in the iteration
+    qtens_cmplx a(q_steps, temp4);
+    qtens_cmplx b(q_steps, temp5);
 
     constexpr double target_acc = 1e-5;
     constexpr unsigned int max_steps = 100;
@@ -98,7 +97,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                     const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                                     K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
                                     // TODO: Make this work with the interface provided by Jonas
-                                    const double b_j = interpolate2d(&k_grid, &z_grid, b[q_iter][j], k_prime_sq, z_prime);
+                                    lInterpolator2d interpolate2d(k_grid, z_grid, b[q_iter][j]);
+                                    const auto b_j = interpolate2d(k_prime_sq, z_prime);
 
                                     return gl * k_kernel.get(i, j) * b_j;
                                 };

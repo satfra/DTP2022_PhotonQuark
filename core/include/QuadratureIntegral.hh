@@ -15,13 +15,13 @@ class qIntegral
   public:
     qIntegral() {}
     template<typename FUN>
-    RF operator()(FUN& fun, const RF& a, const RF& b)
+    auto operator()(FUN& fun, const RF& a, const RF& b)
     {
       const auto& z = linearMapTo(polynomials.zeroes(), RF(-1.), RF(1.), a, b);
       const auto& w = polynomials.weights();
       const RF dx = (b-a)/2.;
 
-      RF res(0.);
+      decltype(fun(a)) res(0.);
       for(unsigned i = 0; i < POL::order; ++i)
         res += dx * w[i] * fun(z[i]);
       return res;
@@ -39,7 +39,7 @@ class qIntegral2d
     qIntegral2d() {}
 
     template<typename FUN>
-    RF operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2)
+    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2)
     {
       const auto& z1 = linearMapTo(polynomials_1.zeroes(), RF(-1.), RF(1.), a1, b1);
       const auto& w1 = polynomials_1.weights();
@@ -49,14 +49,14 @@ class qIntegral2d
       const auto& w2 = polynomials_2.weights();
       const RF dx2 = (b2-a2)/2.;
 
-      std::vector<RF> res(POL1::order);
+      std::vector<decltype(fun(a1,a2))> res(POL1::order);
       auto inner_for_loop = [&](size_t j) {
         for(unsigned i = 0; i < POL2::order; ++i)
           res[j] += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
       };
       tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
-      RF result = 0.;
+      decltype(fun(a1,a2)) result = 0.;
       for(unsigned j = 0; j < POL1::order; ++j)
         result += res[j];
 
@@ -76,7 +76,7 @@ class qIntegral3d
     qIntegral3d() {}
 
     template<typename FUN>
-    RF operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2, const RF& a3, const RF& b3)
+    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2, const RF& a3, const RF& b3)
     {
       const auto& z1 = linearMapTo(polynomials_1.zeroes(), RF(-1.), RF(1.), a1, b1);
       const auto& w1 = polynomials_1.weights();
@@ -90,7 +90,7 @@ class qIntegral3d
       const auto& w3 = polynomials_3.weights();
       const RF dx3 = (b3-a3)/2.;
 
-      std::vector<RF> res(POL1::order);
+      std::vector<decltype(fun(a1,a2,a3))> res(POL1::order);
       auto inner_for_loop = [&](size_t j) {
         for(unsigned i = 0; i < POL2::order; ++i)
           for(unsigned k = 0; k < POL3::order; ++k)
@@ -98,7 +98,7 @@ class qIntegral3d
       };
       tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
-      RF result = 0.;
+      decltype(fun(a1,a2,a3)) result = 0.;
       for(unsigned j = 0; j < POL1::order; ++j)
         result += res[j];
 
