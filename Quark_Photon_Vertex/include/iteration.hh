@@ -4,6 +4,7 @@
 #include "Kernels_G.hh"
 #include "Kernels_K.hh"
 #include "quark_model_functions.hh"
+#include "momentumtransform.hh"
 
 typedef std::vector<std::complex<double>> vec_cmplx;
 typedef std::vector<vec_cmplx> mat_cmplx;
@@ -19,10 +20,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const unsigned int z_steps = z_grid.size();
     const unsigned int q_steps = q_grid.size();
     const unsigned int y_steps = y_grid.size();
-    const vec_cmplx temp2(z_steps, 1.0);
-    const mat_cmplx temp(k_steps, temp2);
-    tens_cmplx a(n_structs, temp);
-    tens_cmplx b(n_structs, temp);
+    const vec_cmplx temp1(z_steps, 1.0);
+    const vec_cmplx temp0(z_steps, 0.0);
+    const mat_cmplx temp2(k_steps, temp1);
+    const mat_cmplx temp3(k_steps, temp0);
+    tens_cmplx a(n_structs, temp2);
+    tens_cmplx b(n_structs, temp3);
 
     constexpr double target_acc = 1e-5;
     constexpr unsigned int max_steps = 100;
@@ -40,9 +43,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
     while (current_acc > target_acc && max_steps > current_step) {
-        ++current_step;
         // For now this will be for a fixed value of q_sq. TODO: Generalize this
         const double q_sq = 0.0;
+        const complex<double> a_old = a[0][0][0];
 
         // loop over i
         for (unsigned int i = 0; i < n_structs; ++i) {
@@ -66,17 +69,17 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 / / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
 \_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
                      */
-                    // Initialize them with the inhomogeneous term
+                    // Initialize the a's with the inhomogeneous term
                     a[i][k_idx][z_idx] = z_2 * a0(i);
 
                     // loop over j
                     for (unsigned int j = 0; j < n_structs; ++j) {
                         // The function to integrate
-                        auto f = [const &](const double& k_prime_sq, const double& z_prime, const double& y){
-                            const double l_sq = k_sq + k_prime_sq - 2.0 * std::sqrt(k_prime_sq * k_sq);
-                            const double gl = maris_tandy_g(l_sq);
-                            const K k_kernel = new K(k_sq, k_prime_sq, z, z_prime, y, q_sq);
-                            const double b_j = interpolate2d(b[j], k_prime_sq, z_prime);
+                        auto f = [&](const double& k_prime_sq, const double& z_prime, const double& y){
+                            const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
+                            const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
+                            K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                            const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
 
                             return gl * k_kernel.get(i, j) * b_j;
                         };
@@ -104,10 +107,23 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   \/_____________/           \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
 
                          */
-                        // TODO: Add code here
+                        // Initialize the b's to 0
+                        b[i][k_idx][z_idx] = 0.0;
+
+                        // Evaluate Gij
+                        G g_kernel(k_sq, z, q_sq);
+                        for (int j = 0; j < n_structs; ++j) {
+                            // Add stuff to the b's
+                            b[i][k_idx][z_idx] += g_kernel.get(i, j) * a[j][k_idx][z_idx];
+                        }
                     }
                 }
             }
         }
+
+        // TODO: Do a better error estimation
+        const std::complex<double> a_new = a[0][0][0];
+        current_acc = abs(a_new - a_old) / abs(a_new + a_old);
+        ++current_step;
     }
 }
