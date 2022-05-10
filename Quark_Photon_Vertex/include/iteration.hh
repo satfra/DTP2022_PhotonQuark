@@ -13,7 +13,8 @@ typedef std::vector<double> vec_double;
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double & y_grid)
 {
-    constexpr double z_2 = 0.97; // Model value for Z_2. Must be updated once we use a real quark.
+    // Model value for Z_2. Must be updated once we use a real quark.
+    constexpr double z_2 = 0.97;
 
     constexpr unsigned int n_structs = 12;
     const unsigned int k_steps = k_grid.size();
@@ -43,7 +44,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
     while (current_acc > target_acc && max_steps > current_step) {
-        // For now this will be for a fixed value of q_sq. TODO: Generalize this
+        // For now this will be for a fixed value of q_sq.
+        // TODO: Generalize this by looping over q_sq
         const double q_sq = 0.0;
         const complex<double> a_old = a[0][0][0];
 
@@ -79,6 +81,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                             const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
                             const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                             K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                            // TODO: Make this work with the interface provided by Jonas
                             const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
 
                             return gl * k_kernel.get(i, j) * b_j;
