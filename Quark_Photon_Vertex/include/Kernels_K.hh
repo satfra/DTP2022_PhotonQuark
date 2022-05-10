@@ -159,7 +159,7 @@ class K
     const double V = momentumtransform::V(k_sq, k_sq_prime, z, z_prime, l2);
     const double w = momentumtransform::w(u, l2);
     const double wprime = momentumtransform::w(uprime, l2);
-    const double X = momentumtransform::w(u, uprime, l2);
+    const double X = momentumtransform::X(u, uprime, l2);
 
     Kupper[0][0] = K11(y, l2, u, uprime, V, w, wprime, X);
 
