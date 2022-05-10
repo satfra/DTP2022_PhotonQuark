@@ -19,7 +19,8 @@ unsigned int locate(const std::vector<double> &xx, double x)
     if (x == xx[0]) return 0;
     else if (x == xx[n-1]) return n-2;
 
-    unsigned int ju, jm, jl;
+    unsigned int ju, jm;
+    int jl;
     bool ascnd;
 
     jl = -1;
