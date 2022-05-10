@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <vector>
+#include <momentumtransform.hh>
 
 using namespace std;
 
@@ -158,10 +159,18 @@ class K
   const double zero = 0.;
 
   public:
-  K(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
+  K(const double& k_sq, const double& k_sq_prime, const double& z, const double& z_prime, const double& y, const double& q_sq)
   {
     Kupper.resize(8, submatrixrow(8));
     Klower.resize(4, submatrixrow(4));
+
+    const double l2 = momentumtransform::l2(k_sq, k_sq_prime, z, z_prime, y);
+    const double u = momentumtransform::u(k_sq, z);
+    const double uprime = momentumtransform::u(k_sq_prime, z_prime);
+    const double V = momentumtransform::V(k_sq, k_sq_prime, z, z_prime, l2);
+    const double w = momentumtransform::w(u, l2);
+    const double wprime = momentumtransform::w(uprime, l2);
+    const double X = momentumtransform::w(u, uprime, l2);
 
     Kupper[0][0] = K11(y, l2, u, uprime, V, w, wprime, X);
 

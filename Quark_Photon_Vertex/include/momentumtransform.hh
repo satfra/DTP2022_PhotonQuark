@@ -3,27 +3,30 @@
 #include <cmath>
 #include <Utils.hh>
 
-double l2 (const double& k, const double& k1, const double& z, const double& z1, const double& y)
+namespace momentumtransform
 {
- return k*k+k1*k1-2.*k*k1*(z*z1+y*std::sqrt(1.-z*z)*std::sqrt(1.-z1*z1));
-} 
+  double l2 (const double& k_sq, const double& k_sq_prime, const double& z, const double& z1, const double& y)
+  {
+    return k_sq+k_sq_prime - 2.*std::sqrt(k_sq*k_sq_prime) * (z*z1 + y*std::sqrt(1.-z*z)*std::sqrt(1.-z1*z1));
+  } 
 
-double u (const double& k, const double& z)
-{
- return k * std::sqrt(1. - powr<2>(z));
-}
+  double u (const double& k_sq, const double& z)
+  {
+    return std::sqrt(k_sq) * std::sqrt(1. - powr<2>(z));
+  }
 
-double V (const double& k, const double& z, const double& k1, const double& z1, const double& l)
-{
- return (k * z - k1 * z1) / (powr<2>(l))
-}
+  double V (const double& k_sq, const double& k_sq_prime, const double& z, const double& z1, const double& l2)
+  {
+    return (std::sqrt(k_sq) * z - std::sqrt(k_sq_prime) * z1) / l2;
+  }
 
-double w (const double& u, const double& l)
-{
- return powr<2>(u/l);
-}
+  double w (const double& u, const double& l2)
+  {
+    return powr<2>(u)/l2;
+  }
 
-double X (const double& u, const double& u1, const double& l)
-{
- return u*u1/powr<2>(l);
+  double X (const double& u, const double& u1, const double& l2)
+  {
+    return u*u1/l2;
+  }
 }
