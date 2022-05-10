@@ -96,7 +96,8 @@ public:
 	{
 		if (y > b || y < a || z > d || z < c)
 			throw std::runtime_error("Interpolating outside bounds");
-	
+
+        // TODO: Use binary search here
 		LI idx1 = x1.size() + 1;
 		for (LI i = 0; i < x1.size() - 1; ++i)
 			if (y >= x1[i] && y <= x1[i + 1])
@@ -105,6 +106,7 @@ public:
 				break;
 			}
 
+        // TODO: Use binary search here
 		LI idx2 = x2.size() + 1;
 		for (LI i = 0; i < x2.size() - 1; ++i)
 			if (z >= x2[i] && z <= x2[i + 1])
@@ -113,6 +115,7 @@ public:
 				break;
 			}
 
+        // TODO: Test this stuff
 		const RF t1 = (y - x1[idx1]) / (x1[idx1 + 1] - x1[idx1]);
 		const RF t2 = (y - x2[idx2]) / (x2[idx2 + 1] - x2[idx2]);
 		return t2 * (t1 *f[idx1 + 1][idx2] + (1. - t1)*f[idx1][idx2]) + (1. - t2)*(t1 *f[idx1 + 1][idx2+1] + (1. - t1)*f[idx1][idx2+1]);
