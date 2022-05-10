@@ -9,6 +9,7 @@
 typedef std::vector <std::complex<double>> vec_cmplx;
 typedef std::vector <vec_cmplx> mat_cmplx;
 typedef std::vector <mat_cmplx> tens_cmplx;
+typedef std::vector <tens_cmplx> qtens_cmplx;
 typedef std::vector<double> vec_double;
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
@@ -25,8 +26,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const vec_cmplx temp0(z_steps, 0.0);
     const mat_cmplx temp2(k_steps, temp1);
     const mat_cmplx temp3(k_steps, temp0);
-    tens_cmplx a(n_structs, temp2);
-    tens_cmplx b(n_structs, temp3);
+    const tens_cmplx temp4(n_structs, temp2);
+    const tens_cmplx temp5(n_structs, temp3);
+    qtens_complex a(q_steps, temp4);
+    qtens_complex b(q_steps, temp5);
     // TODO: Add q-index to a and b and add it everywhere in the iteration
 
     constexpr double target_acc = 1e-5;
@@ -55,8 +58,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             suspicion_counter = 0;
         }
 
-        const std::complex<double> a_old = a[0][0][0];
-        const std::complex<double> b_old = b[0][0][0];
+        const std::complex<double> a_old = a[0][0][0][0];
+        const std::complex<double> b_old = b[0][0][0][0];
 
         // loop over q
         for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
@@ -85,7 +88,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         \_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
                              */
                             // Initialize the a's with the inhomogeneous term
-                            a[i][k_idx][z_idx] = z_2 * a0(i);
+                            a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
 
                             // loop over j
                             for (unsigned int j = 0; j < n_structs; ++j) {
@@ -95,7 +98,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                     const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                                     K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
                                     // TODO: Make this work with the interface provided by Jonas
-                                    const double b_j = interpolate2d(&k_grid, &z_grid, b[j], k_prime_sq, z_prime);
+                                    const double b_j = interpolate2d(&k_grid, &z_grid, b[q_iter][j], k_prime_sq, z_prime);
 
                                     return gl * k_kernel.get(i, j) * b_j;
                                 };
@@ -106,7 +109,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                                                            y_grid[y_steps - 1]);
 
                                 // Add this to the a's
-                                a[i][k_idx][z_idx] += integral;
+                                a[q_iter][i][k_idx][z_idx] += integral;
                             }
                         }
 
@@ -126,13 +129,13 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
                              */
                             // Initialize the b's to 0
-                            b[i][k_idx][z_idx] = 0.0;
+                            b[q_iter][i][k_idx][z_idx] = 0.0;
 
                             // Evaluate Gij
                             G g_kernel(k_sq, z, q_sq);
                             for (unsigned int j = 0; j < n_structs; ++j) {
                                 // Add stuff to the b's
-                                b[i][k_idx][z_idx] += g_kernel.get(i, j) * a[j][k_idx][z_idx];
+                                b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
                             }
                         }
                     }
@@ -141,8 +144,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             // TODO: Do this estimation and switching on and off for all i and q separately
             // TODO: Do a better error estimation
-            const std::complex<double> a_new = a[0][0][0];
-            const std::complex<double> b_new = b[0][0][0];
+            const std::complex<double> a_new = a[0][0][0][0];
+            const std::complex<double> b_new = b[0][0][0][0];
             current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
             current_acc_b = abs(b_new - b_old) / abs(b_new + b_old);
             if (current_acc_a < target_acc) a_converged = true;
