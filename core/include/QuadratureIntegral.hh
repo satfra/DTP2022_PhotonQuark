@@ -94,7 +94,7 @@ class qIntegral3d
       auto inner_for_loop = [&](size_t j) {
         for(unsigned i = 0; i < POL2::order; ++i)
           for(unsigned k = 0; k < POL3::order; ++k)
-            res[j] += dx1 * w1[j] * (dx2 * w2[j] * ( dx3 * w3[i] * fun(z1[j], z2[i], z3[k])));
+            res[j] += dx1 * w1[j] * (dx2 * w2[i] * ( dx3 * w3[k] * fun(z1[j], z2[i], z3[k])));
       };
       tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
