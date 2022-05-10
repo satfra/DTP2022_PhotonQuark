@@ -40,7 +40,7 @@ class LegendrePolynomial : public PolynomialBase<LegendrePolynomial<o>,_RF>
       std::vector<RF> res(order+1);
       res[0] = 1.;
       res[1] = x;
-      for(int n = 2; n <= order; ++n)
+      for(unsigned int n = 2; n <= order; ++n)
           res[n] = (2.*n-1)/RF(n) * x * res[n-1] - (n-1.)/RF(n) * res[n-2];
       return res[order];
     }
@@ -53,7 +53,7 @@ class LegendrePolynomial : public PolynomialBase<LegendrePolynomial<o>,_RF>
       der[0] = 0.;
       res[1] = x;
       der[1] = 1.;
-      for(int n = 2; n <= order; ++n)
+      for(unsigned int n = 2; n <= order; ++n)
       {
           res[n] = (2.*n-1)/RF(n) * x * res[n-1] - (n-1.)/RF(n) * res[n-2];
           der[n] = n * res[n-1] + x * der[n-1];
