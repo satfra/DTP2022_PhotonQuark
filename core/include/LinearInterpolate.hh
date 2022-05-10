@@ -2,6 +2,44 @@
 
 #include <vector>
 
+// TODO: Put me at a nice home please :)
+unsigned int locate(const std::vector<double> &xx, double x)
+{
+    /*
+     * This function has been taken and slightly been modified from the
+     * "Numerical Recipes in C" book.
+     *
+     * Given a vector xx of size n and given a value x, it returns an integer j,
+     * such that x is between xx[j] and xx[j+1]. xx must be sorted. Returns -1
+     * or n when is x is out of range.
+     */
+
+    const unsigned int n = xx.size();
+
+    if (x == xx[0]) return 0;
+    else if (x == xx[n-1]) return n-2;
+
+    unsigned int ju, jm, jl;
+    bool ascnd;
+
+    jl = -1;
+    ju = n;
+
+    ascnd = (xx[n-1] >= xx[0]);
+
+    while (ju - jl > 1) {
+        jm = (ju + jl) / 2;
+        if (x >= xx[jm] == ascnd) {
+            jl = jm;
+        } else {
+            ju = jm;
+        }
+    }
+
+    return jl;
+}
+
+
 template<typename _RF = double>
 class lInterpolator
 {
@@ -22,13 +60,10 @@ class lInterpolator
         throw std::runtime_error("Interpolating outside bounds");
 
       LI idx = x.size() + 1;
-      for(LI i = 0; i < x.size()-1; ++i)
-        if(y >= x[i] && y <= x[i+1])
-        {
-          idx = i;
-          break;
-        }
-      
+
+      // Search for y in x
+      idx = locate(x, y);
+
       const RF t = (y - x[idx]) / (x[idx+1] - x[idx]);
       return t*f[idx+1] + (1.-t)*f[idx];
     }
