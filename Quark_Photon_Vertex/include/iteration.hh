@@ -27,6 +27,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const mat_cmplx temp3(k_steps, temp0);
     tens_cmplx a(n_structs, temp2);
     tens_cmplx b(n_structs, temp3);
+    // TODO: Add q-index to a and b and add it everywhere in the iteration
 
     constexpr double target_acc = 1e-5;
     constexpr unsigned int max_steps = 100;
@@ -138,6 +139,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 }
             }
 
+            // TODO: Do this estimation and switching on and off for all i and q separately
             // TODO: Do a better error estimation
             const std::complex<double> a_new = a[0][0][0];
             const std::complex<double> b_new = b[0][0][0];
