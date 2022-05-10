@@ -30,8 +30,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     constexpr double target_acc = 1e-5;
     constexpr unsigned int max_steps = 100;
-    double current_acc = 1.0;
+    double current_acc_a = 1.0;
+    double current_acc_b = 1.0;
     unsigned int current_step = 0;
+    bool a_converged = false;
+    bool b_converged = false;
 
     // Generate the K kernel, so we don't have to do a lot of function calls
     // Inside the iterations
@@ -43,11 +46,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     constexpr unsigned order_y = 6;
     qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
-    while (current_acc > target_acc && max_steps > current_step) {
+    while (!a_converged && !b_converged && max_steps > current_step) {
         // For now this will be for a fixed value of q_sq.
         // TODO: Generalize this by looping over q_sq
         const double q_sq = 0.0;
-        const complex<double> a_old = a[0][0][0];
+        const std::complex<double> a_old = a[0][0][0];
 
         // loop over i
         for (unsigned int i = 0; i < n_structs; ++i) {
@@ -77,7 +80,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                     // loop over j
                     for (unsigned int j = 0; j < n_structs; ++j) {
                         // The function to integrate
-                        auto f = [&](const double& k_prime_sq, const double& z_prime, const double& y){
+                        auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
                             const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
                             const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                             K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
@@ -88,12 +91,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                         };
 
                         // Evaluate the integral
-                        const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps-1], k_grid[0],
-                                                                                        k_grid[k_steps-1], y_grid[0],
-                                                                                        y_grid[y_steps-1]);
+                        const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
+                                                                   k_grid[k_steps - 1], y_grid[0], y_grid[y_steps - 1]);
 
                         // Add this to the a's
                         a[i][k_idx][z_idx] += integral;
+                    }
 
 
                         /*
@@ -122,11 +125,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                     }
                 }
             }
-        }
 
         // TODO: Do a better error estimation
         const std::complex<double> a_new = a[0][0][0];
-        current_acc = abs(a_new - a_old) / abs(a_new + a_old);
+        current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
+        if(current_acc_a < target_acc) a_converged = true;
+        if(current_acc_b < target_acc) b_converged = true;
         ++current_step;
     }
 }
