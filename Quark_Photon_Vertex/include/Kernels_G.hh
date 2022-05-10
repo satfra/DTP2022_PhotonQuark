@@ -1,18 +1,17 @@
 #pragma once
 
 #include "quark_model_functions.hh"
-#include "iostream"
-#include "complex"
-#include "vector"
-
-// The factor of 0.7 is put into place for now, but might need double-checking.
-#define FACTOR_ZERO_POINT_SEVEN 0.7
+#include <iostream>
+#include <complex>
+#include <vector>
 
 class G
 {
   static constexpr std::complex<double> II = {0.0, 1.0}; // NOLINT(cert-err58-cpp)
+  // The factor of 0.7 is put into place for now, but might need double-checking.
+  static constexpr double FACTOR_ZERO_POINT_SEVEN = 0.7;
 
-  double sigma_v(const double k_sq)
+  double sigma_v(const double& k_sq) const
   {
     const double z = 1.0 / quark_a_function_model(FACTOR_ZERO_POINT_SEVEN * k_sq);
     const double m = quark_m_function_model(FACTOR_ZERO_POINT_SEVEN * k_sq);
@@ -21,12 +20,11 @@ class G
     return z * denom;
   }
 
-  std::complex<double> kernel_G_snake(const uint8_t i, const uint8_t j, const double k_sq, const double z, const double q_sq)
+  std::complex<double> kernel_G_snake(const uint8_t& i, const uint8_t& j, const double& k_sq, const double& z, const double& q_sq) const
   {
-    if (i > 11 || j > 11) {
-      std::cout << "ERROR: Index out of scope in G kernel. i = " << i << " j = " << j << "." << std::endl;
+    if (i > 11 || j > 11)
+      std::cerr << "ERROR: Index out of scope in G kernel. i = " << i << " j = " << j << "." << std::endl;
 
-    }
     // Those four values can also be passed directly, which might be a bit faster.
     // But maybe the compiler does that for us anyway.
     const double kp_sq = k_sq + 0.25 * q_sq + std::sqrt(k_sq * q_sq) * z;
@@ -128,7 +126,7 @@ class G
     return 0.0;
   }
 
-  std::complex<double> kernel_G(const u_int8_t i, const u_int8_t j, const double k_sq, const double z, const double q_sq)
+  std::complex<double> kernel_G(const u_int8_t& i, const u_int8_t& j, const double& k_sq, const double& z, const double& q_sq) const
   {
     const double kp_sq = k_sq + 0.25 * q_sq + std::sqrt(k_sq * q_sq) * z;
     const double km_sq = k_sq + 0.25 * q_sq - std::sqrt(k_sq * q_sq) * z;
@@ -164,9 +162,11 @@ class G
       }
     }
 
-    const std::complex<double>& get(const unsigned& i, const unsigned& j)
+    const std::complex<double>& get(const unsigned& i, const unsigned& j) const
     {
-      if(i < 4 && j < 4)
+      if (i > 11 || j > 11)
+        throw std::runtime_error("Function get(..) out of range in Kernels_G");
+      else if(i < 4 && j < 4)
         return G_upper[i][j];
       else if(i >= 4 && i < 8 && j >= 4 && j < 8)
         return G_middle[i-4][j-4];

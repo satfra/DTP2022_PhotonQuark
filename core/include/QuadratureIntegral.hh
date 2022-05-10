@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <Utils.hh>
 
-#include "tbb/parallel_for.h"
+#include <tbb/parallel_for.h>
 
 template<typename POL, typename RF = typename POL::RF>
 class qIntegral
