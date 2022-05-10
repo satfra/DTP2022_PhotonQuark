@@ -36,4 +36,60 @@ class lInterpolator
   private:
     Range x,f;
     RF a,b;
+
+};
+
+#include <vector>
+
+template<typename _RF = double>
+class lInterpolator
+{
+	using LI = unsigned long long;
+public:
+	using RF = _RF;
+	using Range1 = std::vector<RF>;
+	using grid = std::vector<vector<RF>>;
+
+	2dlInterpolator(const Range1& _x1,Range2& _x2, const grid& _f)
+		: x1(_x1),x2(_x2), f(_f), a(x1.front()), b(x1.back()), c(x2.front()),d(x2.(back())
+	{
+
+	}
+
+	RF operator()(const RF& y,const RF& z)
+	{
+		if (y > b || y < a || z > d || z < c))
+			throw std::runtime_error("Interpolating outside bounds");
+		
+
+		
+	
+		LI idx1 = x1.size() + 1;
+		for (LI i = 0; i < x1.size() - 1; ++i)
+			if (y >= x1[i] && y <= x1[i + 1])
+			{
+				idx1 = i;
+				break;
+			}
+
+		LI idx2 = x2.size() + 1;
+		for (LI i = 0; i < x2.size() - 1; ++i)
+			if (z >= x2[i] && z <= x2[i + 1])
+			{
+				idx2 = i;
+				break;
+			}
+
+
+
+		const RF t1 = (y - x1[idx1]) / (x1[idx1 + 1] - x1[idx1]);
+		const RF t2 = (y - x2[idx2]) / (x2[idx2 + 1] - x2[idx2]);
+		return t2 * (t1 *f[idx1 + 1][idx2] + (1. - t1)*f[idx1][idx2]) + (1. - t2)*(t1 *f[idx1 + 1][idx2+1] + (1. - t1)*f[idx1][idx2+1];
+	}
+
+private:
+	Range x1,x2;
+	RF a, b, c,d;
+	grid f
+
 };
