@@ -32,6 +32,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     vec_double k_kernel(k_dimension, 0.0);
 
     // TODO: Parallelize me!
+    // ... but I might not even be needed ...
     for (int super_idx = 0; super_idx < k_dimension; ++super_idx) {
         const unsigned int i = k_dimension % n_structs;
         const unsigned int j = (k_dimension / n_structs) % n_structs;
