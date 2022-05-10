@@ -29,7 +29,8 @@ unsigned int locate(const std::vector<double> &xx, double x)
 
     while (ju - jl > 1) {
         jm = (ju + jl) / 2;
-        if (x >= xx[jm] == ascnd) {
+        if ((x >= xx[jm]) == ascnd) {
+            // TODO: Test, if the innermost parentheses are correct. Might be a source of errors.
             jl = jm;
         } else {
             ju = jm;
