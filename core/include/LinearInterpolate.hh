@@ -30,7 +30,7 @@ class lInterpolator
         }
       
       const RF t = (y - x[idx]) / (x[idx+1] - x[idx]);
-      return t*x[idx+1] + (1.-t)*x[idx];
+      return t*f[idx+1] + (1.-t)*f[idx];
     }
 
   private:
