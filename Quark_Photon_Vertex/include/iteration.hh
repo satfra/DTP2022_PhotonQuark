@@ -46,9 +46,15 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     while (current_acc > target_acc && max_steps > current_step) {
         // For now this will be for a fixed value of q_sq.
         // TODO: Generalize this by looping over q_sq
-        const double q_sq = 0.0;
+        const double q_sq;
+        unsigned int q_iter=0;
+        
         const complex<double> a_old = a[0][0][0];
-
+        
+      for (q_iter=0; q_iter<q_steps; q_iter++)
+       {
+         
+          q_sq=q_grid[q_iter];
         // loop over i
         for (unsigned int i = 0; i < n_structs; ++i) {
             // loop over k
@@ -128,5 +134,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         const std::complex<double> a_new = a[0][0][0];
         current_acc = abs(a_new - a_old) / abs(a_new + a_old);
         ++current_step;
-    }
+       }
+   }
 }
