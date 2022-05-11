@@ -4,6 +4,7 @@
 #include <Utils.hh>
 #include <LinearInterpolate.hh>
 #include <iteration.hh>
+#include <numeric>
 
 int main(int argc, char *argv[]) {
     // constexpr unsigned order_Q = 10;
@@ -16,10 +17,14 @@ int main(int argc, char *argv[]) {
     constexpr unsigned int order = 3;
     std::vector<double> k_grid(order);
     std::vector<double> q_grid(order);
+
+    std::iota(k_grid.begin(), k_grid.end(), 0);
+    std::iota(q_grid.begin(), q_grid.end(), 0);
+
     const double k_min = -1.0;
     const double k_max = 1e5;
-    k_grid = linearMapTo(k_grid, -1., 1., k_min, k_max);
-    q_grid = linearMapTo(q_grid, -1., 1., 0., 3.);
+    k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_min, k_max);
+    q_grid = linearMapTo(k_grid, 0., double(q_grid.size()-1), 0., 3.);
 
     LegendrePolynomial<order> lp;
     std::vector<double> z_grid = lp.zeroes();
