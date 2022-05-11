@@ -23,6 +23,6 @@ void saveToFile(const qtens_cmplx& data, const std::string& file)
     for(unsigned j = 0; j < data[i].size(); ++j)
       for(unsigned k = 0; k < data[i][j].size(); ++k)
         for(unsigned l = 0; l < data[i][j][k].size(); ++l)
-        fileStream << i << " " << j << " " << k << " " << data[i][j][k][l] << " " << data[i][j][k][l] << "\n";
+        fileStream << i << " " << j << " " << k << " " << data[i][j][k][l] << "\n";
   fileStream.close();
 }
