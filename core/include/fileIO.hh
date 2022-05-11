@@ -9,7 +9,7 @@
 void saveToFile(const std::vector<double>& data, const std::string& file)
 {
   std::ofstream fileStream;
-  fileStream.open(file, std::ios_base::app);
+  fileStream.open(file);
   for(unsigned i = 0; i < data.size(); ++i)
     fileStream << data[i] << "\n";
   fileStream.close();
@@ -18,7 +18,7 @@ void saveToFile(const std::vector<double>& data, const std::string& file)
 void saveToFile(const qtens_cmplx& data, const std::string& file)
 {
   std::ofstream fileStream;
-  fileStream.open(file, std::ios_base::app);
+  fileStream.open(file);
   for(unsigned i = 0; i < data.size(); ++i)
     for(unsigned j = 0; j < data[i].size(); ++j)
       for(unsigned k = 0; k < data[i][j].size(); ++k)
