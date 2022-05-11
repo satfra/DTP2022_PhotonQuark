@@ -32,16 +32,16 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     qtens_cmplx b(q_steps, temp5);
 
     constexpr double target_acc = 1e-5;
-    constexpr unsigned int max_steps = 100;
-    double current_acc_a = 1.0;
-    double current_acc_b = 1.0;
+    constexpr unsigned int max_steps = 25;
+    double current_acc_a;
+    double current_acc_b;
     unsigned int current_step = 0;
     bool a_converged = false;
     bool b_converged = false;
 
     // Do some Legendre Magic
-    constexpr unsigned order_z_prime = 10;
-    constexpr unsigned order_k_prime = 30;
+    constexpr unsigned order_z_prime = 8;
+    constexpr unsigned order_k_prime = 20;
     constexpr unsigned order_y = 6;
     qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
@@ -105,8 +105,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                 };
 
                                 // Evaluate the integral
-                                const std::complex<double> integral = qint(f, z_grid[0], z_grid[z_steps - 1], k_grid[0],
-                                                                           k_grid[k_steps - 1], y_grid[0],
+                                const std::complex<double> integral = qint(f, k_grid[0], k_grid[k_steps - 1], z_grid[0],
+                                                                           z_grid[z_steps - 1], y_grid[0],
                                                                            y_grid[y_steps - 1]);
 
                                 // Add this to the a's
