@@ -111,7 +111,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             current_acc = abs(a_new - a_old) / abs(a_new + a_old);
             ++current_step;
             if (current_step == max_steps) {
-                std::cout << "Maximum iterations reached!" << current_step << " " << max_steps << std::endl;
+                std::cout << "Maximum iterations reached!" << std::endl;
             }
         }
     }
