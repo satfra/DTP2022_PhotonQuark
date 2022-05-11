@@ -95,7 +95,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                     const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
                                     const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                                     K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
-                                    // TODO: Make this work with the interface provided by Jonas
                                     lInterpolator2d interpolate2d(k_grid, z_grid, b[q_iter][j]);
                                     const auto b_j = interpolate2d(k_prime_sq, z_prime);
 
