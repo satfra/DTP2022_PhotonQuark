@@ -41,7 +41,8 @@ class PolynomialBase
       _z.resize(order);
       for(unsigned i = 0; i < order; ++i)
       {
-        const RF initialGuess = std::cos(M_PI * (RF(i+1) - 0.25) / (order + 0.5));
+        unsigned j = order - 1 - i;
+        const RF initialGuess = std::cos(M_PI * (RF(j+1) - 0.25) / (order + 0.5));
         _z[i] = getZero(initialGuess);
       }
     }
