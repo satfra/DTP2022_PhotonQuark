@@ -21,11 +21,11 @@ int main(int argc, char *argv[]) {
     std::iota(k_grid.begin(), k_grid.end(), 0);
     std::iota(q_grid.begin(), q_grid.end(), 0);
 
-    const double k_min = -1.0;
-    const double k_max = 1e5;
+    const double k_min = 1e-5;
+    const double k_max = 1e6;
     k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_min, k_max);
     q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 0., 3.);
-    for(unsigned i = 0; i < q_grid.size(); ++i)
+    for (unsigned i = 0; i < q_grid.size(); ++i)
       std::cout << q_grid[i] << " | ";
     std::cout << "\n";
 
