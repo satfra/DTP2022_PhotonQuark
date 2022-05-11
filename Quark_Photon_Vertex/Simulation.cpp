@@ -18,11 +18,9 @@ int main(int argc, char *argv[]) {
     std::vector<double> q_grid(order);
     const double k_min = -1.0;
     const double k_max = 1e5;
-    const double delta_k = (k_max - k_min) / order;
-    for (int i = 0; i < order; ++i) {
-        k_grid[i] = k_min + delta_k * i;
-        q_grid[i] = 1.0 * i + 1e-3;
-    }
+    k_grid = linearMapTo(k_grid, -1., 1., k_min, k_max);
+    q_grid = linearMapTo(q_grid, -1., 1., 0., 3.);
+
     LegendrePolynomial<order> lp;
     std::vector<double> z_grid = lp.zeroes();
     const std::vector<double>& y_grid = z_grid;
