@@ -69,7 +69,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 }
             }
 
-
             // loop over i
             for (unsigned int i = 0; i < n_structs; ++i) {
                 // loop over k
@@ -104,17 +103,18 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                             // Add this to the a's
                             a[q_iter][i][k_idx][z_idx] += integral;
                         }
-
-
-                        const std::complex<double> a_new = a[0][0][0][0];
-                        current_acc = abs(a_new - a_old) / abs(a_new + a_old);
-                        ++current_step;
-                        if (current_step == max_steps) std::cout << "Maximum iterations reached!" << std::endl;
                     }
                 }
             }
-            saveToFile(a, "file_a");
-            saveToFile(b, "file_b");
+
+            const std::complex<double> a_new = a[0][0][0][0];
+            current_acc = abs(a_new - a_old) / abs(a_new + a_old);
+            ++current_step;
+            if (current_step == max_steps) {
+                std::cout << "Maximum iterations reached!" << current_step << " " << max_steps << std::endl;
+            }
         }
     }
+    saveToFile(a, "file_a");
+    saveToFile(b, "file_b");
 }
