@@ -48,6 +48,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 		while (max_steps > current_step) {
 
 			const std::complex<double> a_old = a[0][0][0][0];
+			const std::complex<double> b_old = b[0][0][0][0];
 
 
 			// loop over i
@@ -72,22 +73,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 				}
 
 			}
-		}
-	}
-	saveToFile(b, "file_b");
-
-
-	// loop over q
-	for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
-		const double q_sq = q_grid[q_iter];
-		double current_acc_a;
-		double current_acc_b;
-		constexpr unsigned int max_sus_counter = 10;
-		unsigned int current_step = 0;
-		while (max_steps > current_step) {
-
-			const std::complex<double> a_old = a[0][0][0][0];
-			const std::complex<double> b_old = b[0][0][0][0];
+		
+			
 
 			// loop over i
 			for (unsigned int i = 0; i < n_structs; ++i) {
@@ -98,19 +85,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 					for (unsigned int z_idx = 0; z_idx < z_steps; ++z_idx) {
 						const double z = z_grid[z_idx];
 
-						/*
-			 _                              _        _            _            _           _                 _          _          _            _
-			/ /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
-		   / /  \                          \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
-		  / / /\ \                         /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
-		 / / /\ \ \        ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
-		/ / /  \ \ \     /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
-	   / / /___/ /\ \    \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
-	  / / /_____/ /\ \                 / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
-	 / /_________/\ \ \            ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
-	/ / /_       __\ \_\          /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
-	\_\___\     /____/_/          \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
-						 */
+						
 						 // Initialize the a's with the inhomogeneous term
 						a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
 
@@ -136,20 +111,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 							a[q_iter][i][k_idx][z_idx] += integral;
 						}
 
-						/*
-		   _                           _        _            _            _           _                 _          _          _            _
-		  / /\                        /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
-		 / /  \                       \ \ \    \_\ \       /  \ \       /  \ \      / /  \             \_\ \      \ \ \     /  \ \       /  \ \   /\_\
-		/ / /\ \                      /\ \_\   /\__ \     / /\ \ \     / /\ \ \    / / /\ \            /\__ \     /\ \_\   / /\ \ \     / /\ \ \_/ / /
-	   / / /\ \ \     ____           / /\/_/  / /_ \ \   / / /\ \_\   / / /\ \_\  / / /\ \ \          / /_ \ \   / /\/_/  / / /\ \ \   / / /\ \___/ /
-	  / / /\ \_\ \  /\____/\        / / /    / / /\ \ \ / /_/_ \/_/  / / /_/ / / / / /  \ \ \        / / /\ \ \ / / /    / / /  \ \_\ / / /  \/____/
-	 / / /\ \ \___\ \/____\/       / / /    / / /  \/_// /____/\    / / /__\/ / / / /___/ /\ \      / / /  \/_// / /    / / /   / / // / /    / / /
-	/ / /  \ \ \__/               / / /    / / /      / /\____\/   / / /_____/ / / /_____/ /\ \    / / /      / / /    / / /   / / // / /    / / /
-   / / /____\_\ \             ___/ / /__  / / /      / / /______  / / /\ \ \  / /_________/\ \ \  / / /   ___/ / /__  / / /___/ / // / /    / / /
-  / / /__________\           /\__\/_/___\/_/ /      / / /_______\/ / /  \ \ \/ / /_       __\ \_\/_/ /   /\__\/_/___\/ / /____\/ // / /    / / /
-  \/_____________/           \/_________/\_\/       \/__________/\/_/    \_\/\_\___\     /____/_/\_\/    \/_________/\/_________/ \/_/     \/_/
-
-						 */
+						
 
 						const std::complex<double> a_new = a[0][0][0][0];
 						const std::complex<double> b_new = b[0][0][0][0];
@@ -161,7 +123,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 				}
 			}
 			saveToFile(a, "file_a");
-
+			saveToFile(b, "file_b");
 		}
 	}
 }
