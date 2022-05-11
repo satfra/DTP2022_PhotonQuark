@@ -55,7 +55,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         // loop over i
         for (unsigned int i = 0; i < n_structs; ++i) {
             unsigned int current_step = 0;
-            while (!a_converged && !b_converged && max_steps > current_step) {
+            while ((!a_converged || !b_converged) && max_steps > current_step) {
                 if (a_converged != b_converged) {
                     ++suspicion_counter;
                 } else {
