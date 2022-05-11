@@ -33,7 +33,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     constexpr unsigned int max_steps = 25;
     double current_acc_a;
     double current_acc_b;
-    unsigned int current_step = 0;
     bool a_converged = false;
     bool b_converged = false;
 
@@ -47,22 +46,23 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // case for. If this happens for too many iterations, it might be a good idea to check, if the other functions
     // will change again. Thus, they converged flags will be turned off again, once this reaches a certain value.
     unsigned int suspicion_counter = 0;
-    constexpr unsigned int max_sus_counter = 10;
-    while (!a_converged && !b_converged && max_steps > current_step) {
-        if (a_converged != b_converged) {
-            ++suspicion_counter;
-        } else {
-            suspicion_counter = 0;
-        }
+    // loop over q
+    for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+        const double q_sq = q_grid[q_iter];
+        constexpr unsigned int max_sus_counter = 10;
+        // loop over i
+        for (unsigned int i = 0; i < n_structs; ++i) {
+            unsigned int current_step = 0;
+            while ((!a_converged || !b_converged) && max_steps > current_step) {
+                if (a_converged != b_converged) {
+                    ++suspicion_counter;
+                } else {
+                    suspicion_counter = 0;
+                }
 
-        const std::complex<double> a_old = a[0][0][0][0];
-        const std::complex<double> b_old = b[0][0][0][0];
+                const std::complex<double> a_old = a[0][0][0][0];
+                const std::complex<double> b_old = b[0][0][0][0];
 
-        // loop over q
-        for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
-            const double q_sq = q_grid[q_iter];
-            // loop over i
-            for (unsigned int i = 0; i < n_structs; ++i) {
                 // loop over k
                 for (unsigned int k_idx = 0; k_idx < k_steps; ++k_idx) {
                     const double k_sq = k_grid[k_idx];
@@ -140,17 +140,17 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                         } else if (suspicion_counter < max_sus_counter) ++suspicion_counter;
                     }
                 }
+                // TODO: Do this estimation and switching on and off for all i and q separately
+                // TODO: Do a better error estimation
+                const std::complex<double> a_new = a[0][0][0][0];
+                const std::complex<double> b_new = b[0][0][0][0];
+                current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
+                current_acc_b = abs(b_new - b_old) / abs(b_new + b_old);
+                if (current_acc_a < target_acc) a_converged = true;
+                if (current_acc_b < target_acc) b_converged = true;
+                ++current_step;
+                if (current_step == max_steps) std::cout << "Maximum iterations reached!" << std::endl;
             }
-
-            // TODO: Do this estimation and switching on and off for all i and q separately
-            // TODO: Do a better error estimation
-            const std::complex<double> a_new = a[0][0][0][0];
-            const std::complex<double> b_new = b[0][0][0][0];
-            current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
-            current_acc_b = abs(b_new - b_old) / abs(b_new + b_old);
-            if (current_acc_a < target_acc) a_converged = true;
-            if (current_acc_b < target_acc) b_converged = true;
-            ++current_step;
         }
     }
     saveToFile(a, "file_a");
