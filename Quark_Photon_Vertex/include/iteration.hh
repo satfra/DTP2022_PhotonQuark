@@ -153,6 +153,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             if (current_acc_a < target_acc) a_converged = true;
             if (current_acc_b < target_acc) b_converged = true;
             ++current_step;
+            if (current_step == max_steps) std::cout << "Maximum iterations reached!" << std::endl;
         }
     }
 }
