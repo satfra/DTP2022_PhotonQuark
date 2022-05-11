@@ -98,7 +98,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 								K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
 								lInterpolator2d interpolate2d(k_grid, z_grid, b[q_iter][j]);
 								const auto b_j = interpolate2d(k_prime_sq, z_prime);
-              std::cout << l_sq << " " << gl << " " << k_kernel.get(i,j) << " " << b_j << "\n";
 
 								return 2.0 * M_PI * gl * k_kernel.get(i, j) * b_j;
 							};
