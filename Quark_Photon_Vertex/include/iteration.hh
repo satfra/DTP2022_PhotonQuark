@@ -6,10 +6,10 @@
 #include "quark_model_functions.hh"
 #include "momentumtransform.hh"
 
-typedef std::vector <std::complex<double>> vec_cmplx;
-typedef std::vector <vec_cmplx> mat_cmplx;
-typedef std::vector <mat_cmplx> tens_cmplx;
-typedef std::vector <tens_cmplx> qtens_cmplx;
+typedef std::vector<std::complex<double>> vec_cmplx;
+typedef std::vector<vec_cmplx> mat_cmplx;
+typedef std::vector<mat_cmplx> tens_cmplx;
+typedef std::vector<tens_cmplx> qtens_cmplx;
 typedef std::vector<double> vec_double;
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
@@ -43,7 +43,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     constexpr unsigned order_z_prime = 10;
     constexpr unsigned order_k_prime = 30;
     constexpr unsigned order_y = 6;
-    qIntegral3d <LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
+    qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
     // If only one of a and b is converged, this counter will start counting the amount of iterations this is the
     // case for. If this happens for too many iterations, it might be a good idea to check, if the other functions
@@ -51,7 +51,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned int suspicion_counter = 0;
     constexpr unsigned int max_sus_counter = 10;
     while (!a_converged && !b_converged && max_steps > current_step) {
-        if(a_converged != b_converged) {
+        if (a_converged != b_converged) {
             ++suspicion_counter;
         } else {
             suspicion_counter = 0;
@@ -73,6 +73,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                         const double z = z_grid[z_idx];
 
                         if (!a_converged || suspicion_counter >= max_sus_counter) {
+                            suspicion_counter = 0;
                             /*
                  _                              _        _            _            _           _                 _          _          _            _
                 / /\                           /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
@@ -111,9 +112,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                 // Add this to the a's
                                 a[q_iter][i][k_idx][z_idx] += integral;
                             }
-                        }
+                        } else if (suspicion_counter < max_sus_counter) ++suspicion_counter;
 
                         if (!b_converged || suspicion_counter >= max_sus_counter) {
+                            suspicion_counter = 0;
                             /*
                _                           _        _            _            _           _                 _          _          _            _
               / /\                        /\ \     /\ \         /\ \         /\ \        / /\              /\ \       /\ \       /\ \         /\ \     _
@@ -137,7 +139,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                                 // Add stuff to the b's
                                 b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
                             }
-                        }
+                        } else if (suspicion_counter < max_sus_counter) ++suspicion_counter;
                     }
                 }
             }
