@@ -21,7 +21,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const unsigned int q_steps = q_grid.size();
     const unsigned int y_steps = y_grid.size();
     const vec_cmplx temp1(z_steps, 1.0);
-    const vec_cmplx temp0(z_steps, 0.0);
+    const vec_cmplx temp0(z_steps, 1.0);
     const mat_cmplx temp2(k_steps, temp1);
     const mat_cmplx temp3(k_steps, temp0);
     const tens_cmplx temp4(n_structs, temp2);
@@ -31,10 +31,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     constexpr double target_acc = 1e-5;
     constexpr unsigned int max_steps = 25;
-    double current_acc_a;
-    double current_acc_b;
-    bool a_converged = false;
-    bool b_converged = false;
 
     // Do some Legendre Magic
     constexpr unsigned order_z_prime = 8;
@@ -42,27 +38,31 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     constexpr unsigned order_y = 6;
     qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
-    // If only one of a and b is converged, this counter will start counting the amount of iterations this is the
-    // case for. If this happens for too many iterations, it might be a good idea to check, if the other functions
-    // will change again. Thus, they converged flags will be turned off again, once this reaches a certain value.
-    unsigned int suspicion_counter = 0;
     // loop over q
     for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
         const double q_sq = q_grid[q_iter];
+        double current_acc_a;
+        double current_acc_b;
+        bool a_converged = false;
+        bool b_converged = false;
+        // If only one of a and b is converged, this counter will start counting the amount of iterations this is the
+        // case for. If this happens for too many iterations, it might be a good idea to check, if the other functions
+        // will change again. Thus, they converged flags will be turned off again, once this reaches a certain value.
         constexpr unsigned int max_sus_counter = 10;
-        // loop over i
-        for (unsigned int i = 0; i < n_structs; ++i) {
-            unsigned int current_step = 0;
-            while ((!a_converged || !b_converged) && max_steps > current_step) {
-                if (a_converged != b_converged) {
-                    ++suspicion_counter;
-                } else {
-                    suspicion_counter = 0;
-                }
+        unsigned int suspicion_counter = 0;
+        unsigned int current_step = 0;
+        while ((!a_converged || !b_converged) && max_steps > current_step) {
+            if (a_converged != b_converged) {
+                ++suspicion_counter;
+            } else {
+                suspicion_counter = 0;
+            }
 
-                const std::complex<double> a_old = a[0][0][0][0];
-                const std::complex<double> b_old = b[0][0][0][0];
+            const std::complex<double> a_old = a[0][0][0][0];
+            const std::complex<double> b_old = b[0][0][0][0];
 
+            // loop over i
+            for (unsigned int i = 0; i < n_structs; ++i) {
                 // loop over k
                 for (unsigned int k_idx = 0; k_idx < k_steps; ++k_idx) {
                     const double k_sq = k_grid[k_idx];
