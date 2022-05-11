@@ -41,14 +41,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // loop over q
     for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
         const double q_sq = q_grid[q_iter];
-        double current_acc_a;
-        double current_acc_b;
-        constexpr unsigned int max_sus_counter = 10;
+        double current_acc = 1.0;
         unsigned int current_step = 0;
-        while (max_steps > current_step) {
-
+        while (max_steps > current_step && current_acc > target_acc) {
             const std::complex<double> a_old = a[0][0][0][0];
-            const std::complex<double> b_old = b[0][0][0][0];
 
             // loop over i
             for (unsigned int i = 0; i < n_structs; ++i) {
@@ -124,9 +120,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 }
                 // TODO: Do a better error estimation
                 const std::complex<double> a_new = a[0][0][0][0];
-                const std::complex<double> b_new = b[0][0][0][0];
-                current_acc_a = abs(a_new - a_old) / abs(a_new + a_old);
-                current_acc_b = abs(b_new - b_old) / abs(b_new + b_old);
+                current_acc = abs(a_new - a_old) / abs(a_new + a_old);
                 ++current_step;
                 if (current_step == max_steps) std::cout << "Maximum iterations reached!" << std::endl;
             }
