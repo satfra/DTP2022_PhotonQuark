@@ -122,7 +122,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                         }
                     }
                 }
-                // TODO: Do this estimation and switching on and off for all i and q separately
                 // TODO: Do a better error estimation
                 const std::complex<double> a_new = a[0][0][0][0];
                 const std::complex<double> b_new = b[0][0][0][0];
