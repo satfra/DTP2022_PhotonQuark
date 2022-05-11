@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <iostream>
 
 // TODO: Put me at a nice home please :)
 unsigned int locate(const std::vector<double> &xx, double x)
@@ -94,8 +95,13 @@ public:
 
 	RF_f operator()(const RF& y,const RF& z) const
 	{
-		if (y > b || y < a || z > d || z < c)
+		if (y > b || y < a || z > d || z < c) {
+      std::cout 
+        << a << " < " << y << " < " << b << "\n"
+        << c << " < " << z << " < " << d
+        << "\n";
 			throw std::runtime_error("Interpolating outside bounds");
+    }
 
         // TODO: Use binary search here
 		LI idx1 = x1.size() + 1;

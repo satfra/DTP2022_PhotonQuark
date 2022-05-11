@@ -54,7 +54,9 @@ class qIntegral2d
         for(unsigned i = 0; i < POL2::order; ++i)
           res[j] += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
       };
-      tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
+      for(unsigned j = 0; j < POL1::order; j++)
+        inner_for_loop(j);
+      //tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
       decltype(fun(a1,a2)) result = 0.;
       for(unsigned j = 0; j < POL1::order; ++j)
