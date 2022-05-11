@@ -1,16 +1,14 @@
+#pragma once
+
 #include <vector>
 #include <complex>
+#include "Utils.hh"
 #include "coeff.hh"
 #include "Kernels_G.hh"
 #include "Kernels_K.hh"
 #include "quark_model_functions.hh"
 #include "momentumtransform.hh"
-
-typedef std::vector<std::complex<double>> vec_cmplx;
-typedef std::vector<vec_cmplx> mat_cmplx;
-typedef std::vector<mat_cmplx> tens_cmplx;
-typedef std::vector<tens_cmplx> qtens_cmplx;
-typedef std::vector<double> vec_double;
+#include "fileIO.hh"
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
                      const vec_double &y_grid) {
@@ -155,4 +153,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             ++current_step;
         }
     }
+    saveToFile(a, "file_a");
+    saveToFile(b, "file_b");
 }
