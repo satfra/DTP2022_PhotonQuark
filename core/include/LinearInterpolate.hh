@@ -107,8 +107,13 @@ public:
 
         // TODO: Test this stuff
 		const RF t1 = (y - x1[idx1]) / (x1[idx1 + 1] - x1[idx1]);
-		const RF t2 = (y - x2[idx2]) / (x2[idx2 + 1] - x2[idx2]);
-		return t2 * (t1 *f[idx1 + 1][idx2] + (1. - t1)*f[idx1][idx2]) + (1. - t2)*(t1 *f[idx1 + 1][idx2+1] + (1. - t1)*f[idx1][idx2+1]);
+		const RF t2 = (z - x2[idx2]) / (x2[idx2 + 1] - x2[idx2]);
+		return t2 * (
+                        t1 *f[idx1 + 1][idx2] + (1. - t1)*f[idx1][idx2]
+                ) +
+              (1. - t2) * (
+                        t1 *f[idx1 + 1][idx2+1] + (1. - t1)*f[idx1][idx2+1]
+                );
 	}
 
 private:
