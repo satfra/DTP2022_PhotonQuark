@@ -43,6 +43,18 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const double& q_sq = q_grid[q_iter];
     double current_acc = 1.0;
     unsigned current_step = 0;
+
+    // Initialize the a's with the inhomogeneous term
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
+      const double& k_sq = k_grid[k_idx];
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+        const double& z = z_grid[z_idx];
+        for (unsigned i = 0; i < n_structs; ++i) {
+          a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
+        }
+      }
+    }
+
     while (max_steps > current_step && current_acc > target_acc) {
 
       const std::complex<double> a_old = a[q_iter][0][0][0];
