@@ -45,7 +45,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned current_step = 0;
     while (max_steps > current_step && current_acc > target_acc) {
 
-      const std::complex<double> a_old = a[0][0][0][0];
+      const std::complex<double> a_old = a[q_iter][0][0][0];
 
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
         const double& k_sq = k_grid[k_idx];
@@ -92,14 +92,17 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                   z_grid[0], z_grid[z_steps - 1], 
                   y_grid[0], y_grid[y_steps - 1]);
 
+              std::cout << "integral = " << integral << " at k2=" << k_sq << " z=" << z << " i=" << i << " j=" << j << "\n";
+
               // Add this to the a's
               a[q_iter][i][k_idx][z_idx] += integral;
             }
           }
         }
       }
-
-      const std::complex<double> a_new = a[0][0][0][0];
+  
+      // TODO better convergence test
+      const std::complex<double> a_new = a[q_iter][0][0][0];
       current_acc = abs(a_new - a_old) / abs(a_new + a_old);
       ++current_step;
       if (current_step == max_steps) {
