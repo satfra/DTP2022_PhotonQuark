@@ -176,4 +176,3 @@ class G
     }
 };
 
-#undef FACTOR_ZERO_POINT_SEVEN
