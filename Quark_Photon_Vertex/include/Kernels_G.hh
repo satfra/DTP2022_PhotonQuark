@@ -23,7 +23,7 @@ class G
   std::complex<double> kernel_G_snake(const uint8_t& i, const uint8_t& j, const double& k_sq, const double& z, const double& q_sq) const
   {
     if (i > 11 || j > 11)
-      std::cerr << "ERROR: Index out of scope in G kernel. i = " << i << " j = " << j << "." << std::endl;
+      throw std::runtime_error("ERROR: Index out of scope in G kernel. i = " + std::to_string(i) + " j = " + std::to_string(j) + ".");
 
     // Those four values can also be passed directly, which might be a bit faster.
     // But maybe the compiler does that for us anyway.
@@ -54,7 +54,7 @@ class G
 
     const uint8_t i_prime = i+1;
     const uint8_t j_prime = j+1;
-    const unsigned int super_idx = i_prime + 100 * j_prime;
+    const unsigned int super_idx = 100 * i_prime + j_prime;
 
     switch (super_idx) {
       case 101:
