@@ -26,9 +26,9 @@ namespace basistransform
 		return - II / (std::sqrt(2.) * Q) * (-a[1] + z/s * a[2] );
 	}
 
-	std::complex<double> f4(const double Q, const double s, const double zconst double k,, std::vector< std::complex<double> > a)
+	std::complex<double> f4(const double Q, const double s, const double z, const double k, std::vector<std::complex<double>> a)
 	{
-		return 1.0 / (std::sqrt(2.) k * s * Q) * a[3];
+		return 1.0 / (std::sqrt(2.) * k * s * Q) * a[3];
 	}
 
 
@@ -39,7 +39,7 @@ namespace basistransform
 
 	std::complex<double> f6(const double Q, const double s, const double z,const double k, std::vector<std::complex<double> > a)
 	{
-		return -1.0/pow(Q*s*k,2) * ( a[0]/std::sqrt(2) - a[6] + s/z a[10]);
+		return -1.0/pow(Q*s*k,2) * ( a[0]/std::sqrt(2) - a[6] + s/z * a[10]);
 	}
 
 	std::complex<double> f7(const double Q, const double s, const double z, const double k,std::vector< std::complex<double> > a)
@@ -69,7 +69,7 @@ namespace basistransform
 
 	std::complex<double> g4(const double Q, const double s, const double z, const double k,std::vector< std::complex<double> > a)
 	{
-		return II/(pow(k,2)*z *s) a[11];
+		return II/(pow(k,2)*z *s) * a[11];
 	}
 }
 
