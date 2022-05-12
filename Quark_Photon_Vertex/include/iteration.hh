@@ -75,6 +75,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
 
             for (unsigned j = 0; j < n_structs; ++j) {
+              if (K::isZeroIndex(i,j))
+                continue;
               // The function to integrate
               auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
                 const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);

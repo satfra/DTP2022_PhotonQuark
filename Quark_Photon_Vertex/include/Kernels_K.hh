@@ -204,14 +204,44 @@ class K
     Klower[3][3] = K1212(y, l2, u, uprime, V, w, wprime, X);
   }
 
-    const double& get(const unsigned& i, const unsigned& j) const
-    {
-      if (i > 11 || j > 11)
-        throw std::runtime_error("Function get(..) out of range in Kernels_K");
-      else if (i < 8 && j < 8)
-        return Kupper[i][j];
-      else if (i >= 8 && j >= 8)
-        return Klower[i-8][j-8];
-      return zero;
-    }
+  static bool isZeroIndex(const unsigned& i, const unsigned& j)
+  {
+    if (i > 11 || j > 11)
+      throw std::runtime_error("Function get(..) out of range in Kernels_K");
+    else if ((i == 0 && j == 1) || (i == 1 && j == 0) || 
+             (i == 2 && j == 3) || (i == 3 && j == 2) || 
+             (i == 3 && j == 4) || (i == 4 && j == 3) || 
+             (i == 4 && j == 5) || (i == 5 && j == 4) || 
+             (i == 6 && j == 7) || (i == 7 && j == 6) || 
+             (i == 7 && j == 8) || (i == 8 && j == 7) || 
+             (i == 8 && j == 9) || (i == 9 && j == 8) ||
+             (i == 11 && j == 10) || (i == 10 && j == 11) ||
+             (i == 0 && j == 2) || (i == 2 && j == 0) || 
+             (i == 0 && j == 3) || (i == 3 && j == 0) || 
+             (i == 0 && j == 4) || (i == 4 && j == 0) || 
+             (i == 1 && j == 3) || (i == 3 && j == 1) || 
+             (i == 1 && j == 4) || (i == 4 && j == 1) || 
+             (i == 1 && j == 5) || (i == 5 && j == 1) || 
+             (i == 1 && j == 6) || (i == 6 && j == 1) || 
+             (i == 2 && j == 4) || (i == 4 && j == 2) || 
+             (i == 3 && j == 5) || (i == 5 && j == 3) || 
+             (i == 4 && j == 6) || (i == 6 && j == 4))
+      return true;
+    else if (i < 8 && j < 8)
+      return false;
+    else if (i >= 8 && j >= 8)
+      return false;
+    return true;
+  }
+
+  const double& get(const unsigned& i, const unsigned& j) const
+  {
+    if (i > 11 || j > 11)
+      throw std::runtime_error("Function get(..) out of range in Kernels_K");
+    else if (i < 8 && j < 8)
+      return Kupper[i][j];
+    else if (i >= 8 && j >= 8)
+      return Klower[i-8][j-8];
+    return zero;
+  }
 };
