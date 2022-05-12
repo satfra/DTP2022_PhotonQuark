@@ -89,9 +89,7 @@ public:
 	using Grid = std::vector<std::vector<RF_f>>;
 
 	lInterpolator2d(const Range& _x1, const Range& _x2, const Grid& _f)
-		: x1(_x1),x2(_x2), f(_f), a(x1.front()), b(x1.back()), c(x2.front()), d(x2.back())
-	{
-	}
+		: x1(_x1),x2(_x2), f(_f), a(x1.front()), b(x1.back()), c(x2.front()), d(x2.back()) {}
 
 	RF_f operator()(const RF& y,const RF& z) const
 	{
@@ -103,23 +101,9 @@ public:
 			throw std::runtime_error("Interpolating outside bounds");
     }
 
-        // TODO: Use binary search here
-		LI idx1 = x1.size() + 1;
-		for (LI i = 0; i < x1.size() - 1; ++i)
-			if (y >= x1[i] && y <= x1[i + 1])
-			{
-				idx1 = i;
-				break;
-			}
+		LI idx1 = locate(x1, y);
 
-        // TODO: Use binary search here
-		LI idx2 = x2.size() + 1;
-		for (LI i = 0; i < x2.size() - 1; ++i)
-			if (z >= x2[i] && z <= x2[i + 1])
-			{
-				idx2 = i;
-				break;
-			}
+		LI idx2 = locate(x2, z);
 
         // TODO: Test this stuff
 		const RF t1 = (y - x1[idx1]) / (x1[idx1 + 1] - x1[idx1]);
