@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(Simulations)
 
 # sometimes we run the program on a server that has ancient standard compilers. In these cases, the following lines should be set to ensure the used std headers are up to date with the c++ 14 standard
-set(CMAKE_CXX_COMPILER /usr/local/bin/g++-11)
+#set(CMAKE_CXX_COMPILER /usr/local/bin/g++-11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
