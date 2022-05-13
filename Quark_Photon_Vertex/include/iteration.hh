@@ -143,7 +143,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
-              auto f = [=](const double &k_prime_sq, const double &z_prime) {
+              auto f = [&](const double &k_prime_sq, const double &z_prime) {
                 lInterpolator2d interpolate2d_b(k_grid, z_grid, b[q_iter][j]);
                 const auto b_j = interpolate2d_b(k_prime_sq, z_prime);
 
