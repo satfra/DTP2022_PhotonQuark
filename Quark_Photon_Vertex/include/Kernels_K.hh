@@ -107,11 +107,11 @@ class K
     return -K16(y, l2, u, uprime, V, w, wprime, X);
   }
 
+
   double K99(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {
     return K55(y, l2, u, uprime, V, w, wprime, X) / y;
   }
-
 
   double K1010(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X)
   {

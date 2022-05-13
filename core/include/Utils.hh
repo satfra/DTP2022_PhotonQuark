@@ -10,7 +10,11 @@ typedef std::vector<std::complex<double>> vec_cmplx;
 typedef std::vector<vec_cmplx> mat_cmplx;
 typedef std::vector<mat_cmplx> tens_cmplx;
 typedef std::vector<tens_cmplx> qtens_cmplx;
+
 typedef std::vector<double> vec_double;
+typedef std::vector<vec_double> mat_double;
+typedef std::vector<mat_double> tens_double;
+typedef std::vector<tens_double> qtens_double;
 
   template<int n, typename RF> 
 constexpr RF powr(const RF& x)

@@ -7,6 +7,5 @@ double a0 (const unsigned& i)
     return std::sqrt(2.);
   else if (i==7 || i==10)
     return 1.;
-  else 
-    return 0.;
+  return 0.;
 }

@@ -90,6 +90,7 @@ class qIntegral3d
       const auto& w3 = polynomials_3.weights();
       const RF dx3 = (b3-a3)/2.;
 
+
       std::vector<decltype(fun(a1,a2,a3))> res(POL1::order);
       auto inner_for_loop = [&](size_t j) {
         for(unsigned i = 0; i < POL2::order; ++i)

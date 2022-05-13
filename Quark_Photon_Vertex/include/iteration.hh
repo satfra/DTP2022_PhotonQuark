@@ -20,14 +20,16 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const unsigned int z_steps = z_grid.size();
   const unsigned int q_steps = q_grid.size();
   const unsigned int y_steps = y_grid.size();
-  const vec_cmplx temp1(z_steps, 1.0);
-  const vec_cmplx temp0(z_steps, 1.0);
-  const mat_cmplx temp2(k_steps, temp1);
-  const mat_cmplx temp3(k_steps, temp0);
-  const tens_cmplx temp4(n_structs, temp2);
-  const tens_cmplx temp5(n_structs, temp3);
-  qtens_cmplx a(q_steps, temp4);
-  qtens_cmplx b(q_steps, temp5);
+  const vec_cmplx temp0(z_steps, 0.0);
+  const mat_cmplx temp1(k_steps, temp0);
+  const tens_cmplx temp2(n_structs, temp1);
+  qtens_cmplx a(q_steps, temp2);
+  qtens_cmplx b(q_steps, temp2);
+
+  const vec_double temp0_d(z_steps, 0.0);
+  const mat_double temp1_d(z_steps, temp0_d);
+  const tens_double temp2_d(k_steps, temp1_d);
+  qtens_double K_prime(k_steps, temp2_d);
 
   constexpr double target_acc = 1e-3;
   constexpr unsigned int max_steps = 30;
@@ -35,7 +37,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   // Do some Legendre Magic
   constexpr unsigned order_z_prime = 8;
   constexpr unsigned order_k_prime = 20;
-  constexpr unsigned order_y = 6;
+  constexpr unsigned order_y = 8;
   qIntegral3d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>, LegendrePolynomial<order_y>> qint;
 
   // loop over q
@@ -45,15 +47,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned current_step = 0;
 
     // Initialize the a's with the inhomogeneous term
-    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-      const double& k_sq = k_grid[k_idx];
-      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
-        const double& z = z_grid[z_idx];
-        for (unsigned i = 0; i < n_structs; ++i) {
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+        for (unsigned i = 0; i < n_structs; ++i)
           a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
-        }
-      }
-    }
 
     while (max_steps > current_step && current_acc > target_acc) {
 
@@ -67,13 +64,15 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
           // Evaluate Gij
           G g_kernel(k_sq, z, q_sq);
           for (unsigned i = 0; i < n_structs; ++i) {
-          // Initialize the b's to 0
-          b[q_iter][i][k_idx][z_idx] = 0.0;
+            // Initialize the b's to 0
+            b[q_iter][i][k_idx][z_idx] = 0.0;
 
             for (unsigned j = 0; j < n_structs; ++j) {
               // Add stuff to the b's
               b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
+              //std::cout << "g_kernel[" << i << "," << j << "] = " << g_kernel.get(i, j) << "\n";
             }
+            //std::cout << "b[" << i << "]≠" << b[q_iter][i][k_idx][z_idx] << "\n";
           }
         }
       }
@@ -90,12 +89,13 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
-              auto f = [&](const double &k_prime_sq, const double &z_prime, const double &y) {
+              auto f = [=](const double &k_prime_sq, const double &z_prime, const double &y) {
                 const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
                 const double gl = maris_tandy_g(l_sq, 1.8, 0.72);
                 K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
                 lInterpolator2d interpolate2d(k_grid, z_grid, b[q_iter][j]);
                 const auto b_j = interpolate2d(k_prime_sq, z_prime);
+                //std::cout << "b[" << j << "]≠" << b_j << "\n";
 
                 return 2.0 * M_PI * gl * k_kernel.get(i, j) * b_j;
               };
@@ -106,7 +106,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                   z_grid[0], z_grid[z_steps - 1], 
                   y_grid[0], y_grid[y_steps - 1]);
 
-              std::cout << "integral = " << integral << " at k2=" << k_sq << " z=" << z << " i=" << i << " j=" << j << "\n";
+              //std::cout << "integral = " << integral << " at k2=" << k_sq << " z=" << z << " i=" << i << " j=" << j << "\n";
 
               // Add this to the a's
               a[q_iter][i][k_idx][z_idx] += integral;
@@ -124,8 +124,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       }
 
       std::cout << "current_step = " << current_step << "\n"
-        << "a[q_iter][0][0][0] = " << a[q_iter][0][0][0] << "\n"
-        << "b[q_iter][0][0][0] = " << b[q_iter][0][0][0] << "\n";
+        << "a[q_iter][0][0][0] = " << a[q_iter][0][0][3] << "\n"
+        << "b[q_iter][0][0][0] = " << b[q_iter][0][0][3] << "\n";
     }
   }
   saveToFile(a, "file_a", "q_sq i k_sq z");

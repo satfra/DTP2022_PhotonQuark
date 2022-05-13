@@ -7,7 +7,7 @@ namespace momentumtransform
 {
   double l2 (const double& k_sq, const double& k_sq_prime, const double& z, const double& z1, const double& y)
   {
-    return k_sq+k_sq_prime - 2.*std::sqrt(k_sq*k_sq_prime) * (z*z1 + y*std::sqrt(1.-z*z)*std::sqrt(1.-z1*z1));
+    return k_sq + k_sq_prime - 2.*std::sqrt(k_sq*k_sq_prime) * (z*z1 + y*std::sqrt(1.-z*z)*std::sqrt(1.-z1*z1));
   } 
 
   double u (const double& k_sq, const double& z)
