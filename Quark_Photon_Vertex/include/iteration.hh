@@ -36,7 +36,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const jtens2_double temp4_d(k_steps, temp3_d);
 
   constexpr double target_acc = 1e-3;
-  constexpr unsigned max_steps = 50;
+  constexpr unsigned max_steps = 1;
 
   constexpr double int_factors = 0.5 / powr<4>(2.*M_PI);
 
@@ -55,6 +55,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned current_step = 0;
 
     ijtens2_double K_prime(n_structs, temp4_d);
+
     #pragma omp parallel for collapse(2)
     for (unsigned i = 0; i < n_structs; ++i)
     {
@@ -94,7 +95,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             }
           }
         }
-        std::cout << "K_" << i << j << " = " << K_prime[i][0][0][j][0][0] << "\n";
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        {
+          const double& k_sq = k_grid[k_idx];
+          std::cout << "K_" << i << j << "(" << k_sq << ") = " << K_prime[i][0][0][j][k_idx][0] * k_sq << "\n";
+        }
       }
     }
     std::cout << "Calculated K'_ij...\n";
