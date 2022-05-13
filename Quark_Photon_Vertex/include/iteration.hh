@@ -55,7 +55,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       {
         if (K::isZeroIndex(i,j))
           continue;
-        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) 
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
         {
           const double& k_sq = k_grid[k_idx];
           for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
@@ -127,9 +127,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       std::cout << "  Calculated b_i...\n";
 
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        const double& k_sq = k_grid[k_idx];
         for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
-          const double& z = z_grid[z_idx];
           for (unsigned i = 0; i < n_structs; ++i) {
             // Initialize the a's with the inhomogeneous term
             a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
@@ -163,7 +161,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       }
 
       std::cout << "  Calculated a_i...\n";
-  
+
       // TODO better convergence test
       const std::complex<double> a_new = a[q_iter][0][0][0];
       current_acc = abs(a_new - a_old) / abs(a_new + a_old);
