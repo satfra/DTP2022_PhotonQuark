@@ -128,11 +128,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             // Add stuff to the b's
             for (unsigned j = 0; j < n_structs; ++j)
-            {
-              //if(j > 0 )
-              //  continue;
               b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
-            }
           }
         }
       }
@@ -151,8 +147,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             for (unsigned j = 0; j < n_structs; ++j)
             {
-              //if(j > 0 )
-              //  continue;
+              if(j > 0 )
+                continue;
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
