@@ -24,8 +24,8 @@ int main(int argc, char *argv[]) {
     std::iota(k_grid.begin(), k_grid.end(), 0);
     std::iota(q_grid.begin(), q_grid.end(), 0);
 
-    const double k_min = 1e-9;
-    const double k_max = 1e-4;
+    const double k_min = 1e-6;
+    const double k_max = 1e6;
     k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_min, k_max);
     q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
 
