@@ -135,7 +135,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       std::cout << "  Calculated b_i...\n";
 
-      #pragma omp parallel for// collapse(2)
+      #pragma omp parallel for collapse(2)
       for (unsigned i = 0; i < n_structs; ++i)
       {
         for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
