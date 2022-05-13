@@ -126,13 +126,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             // Initialize the b's to 0
             b[q_iter][i][k_idx][z_idx] = 0.0;
 
+            // Add stuff to the b's
             for (unsigned j = 0; j < n_structs; ++j)
-            {
-              // Add stuff to the b's
               b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
-              //std::cout << "g_kernel[" << i << "," << j << "] = " << g_kernel.get(i, j) << "\n";
-            }
-            //std::cout << "b[" << i << "]≠" << b[q_iter][i][k_idx][z_idx] << "\n";
           }
         }
       }
@@ -162,15 +158,14 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
                 const auto K_prime_ij = interpolate2d_K(k_prime_sq, z_prime);
 
-                return 2.0 * M_PI * K_prime_ij * b_j;
+                return K_prime_ij * b_j 
+                  * 2.0 * M_PI * k_prime_sq * std::sqrt(1. - powr<2>(z_prime));
               };
 
               // Evaluate the integral
               const std::complex<double> integral = qint2d(f, 
                   k_grid[0], k_grid[k_steps - 1], 
                   z_grid[0], z_grid[z_steps - 1]);
-
-              //std::cout << "integral = " << integral << " at k2=" << k_sq << " z=" << z << " i=" << i << " j=" << j << "\n";
 
               // Add this to the a's
               a[q_iter][i][k_idx][z_idx] += integral * int_factors;
@@ -192,11 +187,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
           current_acc = std::max(current_acc, abs(diff) / abs(sum));
         }
       }
-      ++current_step;
-      if (current_step == max_steps) {
-        std::cout << "Maximum iterations reached!" << std::endl;
-      }
 
+      ++current_step;
+      if (current_step == max_steps)
+        std::cout << "Maximum iterations reached!" << std::endl;
       std::cout << "  current_step = " << current_step << "\n"
         << "  current_acc = " << current_acc << "\n";
     }
