@@ -11,11 +11,11 @@
 #include "fileIO.hh"
 #include "omp.h"
 
-void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
-    const vec_double &y_grid)
+void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid)
 {
   // Model value for Z_2. Must be updated once we use a real quark.
   constexpr double z_2 = 0.97;
+
   const unsigned z_0 = z_grid.size() / 2;
 
   constexpr unsigned int n_structs = 12;
@@ -139,7 +139,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       std::cout << "  Calculated b_i...\n";
 
-      //#pragma omp parallel for// collapse(2)
+      #pragma omp parallel for// collapse(2)
       for (unsigned i = 0; i < n_structs; ++i)
       {
         for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
