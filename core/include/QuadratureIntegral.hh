@@ -13,7 +13,12 @@ class qIntegral
     POL polynomials;
 
   public:
-    qIntegral() {}
+    qIntegral() 
+    {
+      polynomials.zeroes();
+      polynomials.weights();
+    }
+
     template<typename FUN>
     auto operator()(FUN& fun, const RF& a, const RF& b)
     {
@@ -36,7 +41,13 @@ class qIntegral2d
     POL2 polynomials_2;
 
   public:
-    qIntegral2d() {}
+    qIntegral2d() 
+    {
+      polynomials_1.zeroes();
+      polynomials_1.weights();
+      polynomials_2.zeroes();
+      polynomials_2.weights();
+    }
 
     template<typename FUN>
     auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2)

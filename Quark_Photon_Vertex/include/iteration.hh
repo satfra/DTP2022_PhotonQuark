@@ -37,9 +37,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   constexpr unsigned int max_steps = 30;
 
   // Do some Legendre Magic
-  constexpr unsigned order_z_prime = 4;
+  constexpr unsigned order_z_prime = 8;
   constexpr unsigned order_k_prime = 10;
-  constexpr unsigned order_y = 4;
+  constexpr unsigned order_y = 8;
   qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint2d;
   qIntegral<LegendrePolynomial<order_y>> qint1d;
 
@@ -70,6 +70,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
               {
                 const double& z_prime = z_grid[z_prime_idx];
 
+                K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = 0.;
+
                 // The function to integrate
                 auto f = [&](const double &y) {
                   const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
@@ -82,7 +84,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 const double integral = qint1d(f, y_grid[0], y_grid[y_steps - 1]);
 
                 // Add this to the a's
-                K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] += integral;
+                K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = integral;
               }
             }
           }
