@@ -8,7 +8,7 @@
 
 int main(int argc, char *argv[]) 
 {
-  constexpr unsigned order_k = 8;
+  constexpr unsigned order_k = 256;
   constexpr unsigned order_q = 1;
   constexpr unsigned order_z = 2;
   static_assert(order_z % 2 == 0);
@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
   std::iota(k_grid.begin(), k_grid.end(), 0);
   std::iota(q_grid.begin(), q_grid.end(), 0);
 
-  constexpr double L = 1e+3;
-  std::cout << "L=" << L << "\n";
-  constexpr double k_sq_min = 1e-6;
+  constexpr double L = 5e+1;
+  std::cout << "L=" << L << " order_k=" << order_k <<"\n";
+  constexpr double k_sq_min = 1e-12;
   constexpr double k_sq_max = L*L;
   k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_sq_min, k_sq_max);
   q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);

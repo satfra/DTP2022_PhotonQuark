@@ -12,7 +12,7 @@ double quark_a_function_model(const double& x)
 // The model for B(x) given in the project description
 double quark_m_function_model(const double& x)
 {
-    return 0.06 / (1.0 + x) + 0.44 * std::exp(-0.66 * x) + 0.009 / pow(std::log(x + 2.0), 0.48);
+  return 0.06 / (1.0 + x) + 0.44 * std::exp(-0.66 * x) + 0.009 / pow(std::log(x + 2.0), 0.48);
 }
 
 /*

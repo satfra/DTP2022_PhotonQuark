@@ -36,13 +36,13 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const jtens2_double temp4_d(k_steps, temp3_d);
 
   constexpr double target_acc = 1e-3;
-  constexpr unsigned max_steps = 1;
+  constexpr unsigned max_steps = 10;
 
   constexpr double int_factors = 0.5 / powr<4>(2.*M_PI);
 
   // Do some Legendre Magic
   constexpr unsigned order_z_prime = 2;
-  constexpr unsigned order_k_prime = 8;
+  constexpr unsigned order_k_prime = 256;
   constexpr unsigned order_y = 8;
   qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint2d;
   qIntegral<LegendrePolynomial<order_y>> qint1d;
@@ -108,19 +108,22 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
         for (unsigned i = 0; i < n_structs; ++i)
-          a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
+          a[q_iter][i][k_idx][z_idx] = 0.;//z_2 * a0(i);
 
     std::cout << "Initialized a_i...\n";
 
     std::cout << "Starting iteration...\n";
-    while (max_steps > current_step && current_acc > target_acc) {
+    while (max_steps > current_step && current_acc > target_acc)
+    {
       std::cout << "\nStarted a step...\n";
 
       const auto a_old = a[q_iter];
 
       #pragma omp parallel for collapse(2)
-      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      {
+        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+        {
           const double& k_sq = k_grid[k_idx];
           const double& z = z_grid[z_idx];
 
@@ -152,7 +155,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             for (unsigned j = 0; j < n_structs; ++j)
             {
-              if(j > 0 )
+              if(j > 8 )
                 continue;
               if (K::isZeroIndex(i,j))
                 continue;
