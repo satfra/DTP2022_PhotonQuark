@@ -72,7 +72,7 @@ class qIntegral2d
       for(unsigned j = 0; j < POL1::order; ++j)
         result += res[j];
       */
-      for(unsigned j = 0; j < POL2::order; ++j)
+      for(unsigned j = 0; j < POL1::order; ++j)
         for(unsigned i = 0; i < POL2::order; ++i)
           result += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
 

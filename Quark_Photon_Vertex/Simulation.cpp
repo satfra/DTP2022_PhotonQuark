@@ -10,7 +10,7 @@ int main(int argc, char *argv[])
 {
     constexpr unsigned order_k = 8;
     constexpr unsigned order_q = 1;
-    constexpr unsigned order_z = 8;
+    constexpr unsigned order_z = 2;
     static_assert(order_z % 2 == 0);
     std::vector<double> k_grid(order_k);
     std::vector<double> q_grid(order_q);
@@ -18,12 +18,14 @@ int main(int argc, char *argv[])
     std::iota(k_grid.begin(), k_grid.end(), 0);
     std::iota(q_grid.begin(), q_grid.end(), 0);
 
-    const double k_min = 1e-6;
-    const double k_max = 1e+2;
-    k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_min, k_max);
+    constexpr double L = 1e+3;
+    std::cout << "L=" << L << "\n";
+    constexpr double k_sq_min = 1e-6;
+    constexpr double k_sq_max = L*L;
+    k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_sq_min, k_sq_max);
     q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
 
-    q_grid[0] = 1;
+    q_grid[0] = 0.001;
 
     for (unsigned i = 0; i < q_grid.size(); ++i)
         std::cout << q_grid[i] << " q ";

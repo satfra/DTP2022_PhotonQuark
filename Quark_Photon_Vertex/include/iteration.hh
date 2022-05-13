@@ -36,12 +36,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const jtens2_double temp4_d(k_steps, temp3_d);
 
   constexpr double target_acc = 1e-3;
-  constexpr unsigned max_steps = 200;
+  constexpr unsigned max_steps = 50;
 
   constexpr double int_factors = 0.5 / powr<4>(2.*M_PI);
 
   // Do some Legendre Magic
-  constexpr unsigned order_z_prime = 8;
+  constexpr unsigned order_z_prime = 2;
   constexpr unsigned order_k_prime = 8;
   constexpr unsigned order_y = 8;
   qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint2d;
@@ -128,14 +128,18 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             // Add stuff to the b's
             for (unsigned j = 0; j < n_structs; ++j)
+            {
+              //if(j > 0 )
+              //  continue;
               b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
+            }
           }
         }
       }
 
       std::cout << "  Calculated b_i...\n";
 
-      #pragma omp parallel for// collapse(2)
+      //#pragma omp parallel for// collapse(2)
       for (unsigned i = 0; i < n_structs; ++i)
       {
         for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
@@ -147,6 +151,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             for (unsigned j = 0; j < n_structs; ++j)
             {
+              //if(j > 0 )
+              //  continue;
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
@@ -158,8 +164,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
                 const auto K_prime_ij = interpolate2d_K(k_prime_sq, z_prime);
 
-                return K_prime_ij * b_j 
-                  * 2.0 * M_PI * k_prime_sq * std::sqrt(1. - powr<2>(z_prime));
+                return K_prime_ij * b_j * std::sqrt(1. - powr<2>(z_prime)) * k_prime_sq;
               };
 
               // Evaluate the integral
@@ -168,7 +173,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                   z_grid[0], z_grid[z_steps - 1]);
 
               // Add this to the a's
-              a[q_iter][i][k_idx][z_idx] += integral * int_factors;
+              a[q_iter][i][k_idx][z_idx] += integral * 2.0 * M_PI * int_factors;
             }
           }
         }
