@@ -9,6 +9,7 @@
 #include "quark_model_functions.hh"
 #include "momentumtransform.hh"
 #include "fileIO.hh"
+#include "omp.h"
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
     const vec_double &y_grid) {
@@ -28,17 +29,17 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
   const vec_double temp0_d(z_steps, 0.0);
   const mat_double temp1_d(k_steps, temp0_d);
-  const tens_double temp2_d(z_steps, temp1_d);
-  const tens2_double temp3_d(k_steps, temp2_d);
-  const jtens2_double temp4_d(n_structs, temp3_d);
+  const tens_double temp2_d(n_structs, temp1_d);
+  const tens2_double temp3_d(z_steps, temp2_d);
+  const jtens2_double temp4_d(k_steps, temp3_d);
 
   constexpr double target_acc = 1e-3;
   constexpr unsigned int max_steps = 30;
 
   // Do some Legendre Magic
-  constexpr unsigned order_z_prime = 8;
-  constexpr unsigned order_k_prime = 20;
-  constexpr unsigned order_y = 2;
+  constexpr unsigned order_z_prime = 4;
+  constexpr unsigned order_k_prime = 10;
+  constexpr unsigned order_y = 4;
   qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint2d;
   qIntegral<LegendrePolynomial<order_y>> qint1d;
 
@@ -49,6 +50,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned current_step = 0;
 
     ijtens2_double K_prime(n_structs, temp4_d);
+    #pragma omp parallel for collapse(2)
     for (unsigned i = 0; i < n_structs; ++i)
     {
       for (unsigned j = 0; j < n_structs; ++j)
@@ -80,12 +82,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
                 const double integral = qint1d(f, y_grid[0], y_grid[y_steps - 1]);
 
                 // Add this to the a's
-                K_prime[i][j][k_idx][z_idx][k_prime_idx][z_prime_idx] += integral;
+                K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] += integral;
               }
             }
           }
         }
-        std::cout << "K_"<<i<<j<<" = " << K_prime[i][j][0][0][0][0] << "\n";
+        std::cout << "K_" << i << j << " = " << K_prime[i][0][0][j][0][0] << "\n";
       }
     }
     std::cout << "Calculated K'_ij...\n";
@@ -103,9 +105,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       const std::complex<double> a_old = a[q_iter][0][0][0];
 
+      #pragma omp parallel for collapse(2)
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        const double& k_sq = k_grid[k_idx];
         for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+          const double& k_sq = k_grid[k_idx];
           const double& z = z_grid[z_idx];
 
           // Evaluate Gij
@@ -126,21 +129,23 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       std::cout << "  Calculated b_i...\n";
 
-      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
-          for (unsigned i = 0; i < n_structs; ++i) {
+      #pragma omp parallel for// collapse(2)
+      for (unsigned i = 0; i < n_structs; ++i) {
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
+          for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
             // Initialize the a's with the inhomogeneous term
             a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
 
             for (unsigned j = 0; j < n_structs; ++j) {
+
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
-              auto f = [=](const double &k_prime_sq, const double &z_prime) {
+              auto f = [&](const double &k_prime_sq, const double &z_prime) {
                 lInterpolator2d interpolate2d_b(k_grid, z_grid, b[q_iter][j]);
                 const auto b_j = interpolate2d_b(k_prime_sq, z_prime);
 
-                lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][j][k_idx][z_idx]);
+                lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
                 const auto K_prime_ij = interpolate2d_K(k_prime_sq, z_prime);
 
                 return 2.0 * M_PI * K_prime_ij * b_j;
