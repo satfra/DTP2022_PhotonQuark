@@ -21,9 +21,9 @@ double quark_m_function_model(const double& x)
  */
 double maris_tandy_alpha(const double& p_squared, const double& eta, const double& lambda)
 {
-    const double lambda_qcd = 0.234;
-    const double lambda_0 = 1.0;
-    const double gamma_m = 0.48;
+    constexpr double lambda_qcd = 0.234;
+    constexpr double lambda_0 = 1.0;
+    constexpr double gamma_m = 0.48;
     const double x = p_squared / (lambda * lambda);
     const double irterm = eta * eta *
             eta * eta * eta *
@@ -40,8 +40,8 @@ double maris_tandy_alpha(const double& p_squared, const double& eta, const doubl
 // i.e. the function alpha(k^2) with some constant factors
 double maris_tandy_g(const double& p_squared, const double& eta, const double& lambda)
 {
-    const double z_2 = 0.97; // For now this is our go-to value. Has to be
-                             // adjusted when we use the real propagator.
+    constexpr double z_2 = 0.97; // For now this is our go-to value. Has to be
+                                 // adjusted when we use the real propagator.
 
     return z_2 * z_2 * 16.0 * M_PI * maris_tandy_alpha(p_squared, eta, lambda) / (3.0 * p_squared);
 }
