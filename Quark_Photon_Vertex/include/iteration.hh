@@ -9,6 +9,7 @@
 #include "quark_model_functions.hh"
 #include "momentumtransform.hh"
 #include "fileIO.hh"
+#include "omp.h"
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
     const vec_double &y_grid) {
@@ -49,6 +50,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     unsigned current_step = 0;
 
     ijtens2_double K_prime(n_structs, temp4_d);
+    #pragma omp parallel for collapse(2)
     for (unsigned i = 0; i < n_structs; ++i)
     {
       for (unsigned j = 0; j < n_structs; ++j)
@@ -103,9 +105,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       const std::complex<double> a_old = a[q_iter][0][0][0];
 
+      #pragma omp parallel for collapse(2)
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        const double& k_sq = k_grid[k_idx];
         for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+          const double& k_sq = k_grid[k_idx];
           const double& z = z_grid[z_idx];
 
           // Evaluate Gij
@@ -126,9 +129,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       std::cout << "  Calculated b_i...\n";
 
+      #pragma omp parallel for collapse(2)
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-        const double& k_sq = k_grid[k_idx];
         for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+          const double& k_sq = k_grid[k_idx];
           const double& z = z_grid[z_idx];
           for (unsigned i = 0; i < n_structs; ++i) {
             // Initialize the a's with the inhomogeneous term

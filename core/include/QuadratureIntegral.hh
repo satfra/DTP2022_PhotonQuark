@@ -49,16 +49,21 @@ class qIntegral2d
       const auto& w2 = polynomials_2.weights();
       const RF dx2 = (b2-a2)/2.;
 
+      decltype(fun(a1,a2)) result = 0.;
       std::vector<decltype(fun(a1,a2))> res(POL1::order);
+      /*
       auto inner_for_loop = [&](size_t j) {
         for(unsigned i = 0; i < POL2::order; ++i)
           res[j] += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
       };
       tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
-      decltype(fun(a1,a2)) result = 0.;
       for(unsigned j = 0; j < POL1::order; ++j)
         result += res[j];
+      */
+      for(unsigned j = 0; j < POL2::order; ++j)
+        for(unsigned i = 0; i < POL2::order; ++i)
+          result += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
 
       return result;
     }
