@@ -12,9 +12,11 @@
 #include "omp.h"
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid,
-    const vec_double &y_grid) {
+    const vec_double &y_grid)
+{
   // Model value for Z_2. Must be updated once we use a real quark.
   constexpr double z_2 = 0.97;
+  const unsigned z_0 = z_grid.size() / 2;
 
   constexpr unsigned int n_structs = 12;
   const unsigned int k_steps = k_grid.size();
@@ -34,17 +36,20 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const jtens2_double temp4_d(k_steps, temp3_d);
 
   constexpr double target_acc = 1e-3;
-  constexpr unsigned int max_steps = 30;
+  constexpr unsigned max_steps = 200;
+
+  constexpr double int_factors = 0.5 / powr<4>(2.*M_PI);
 
   // Do some Legendre Magic
   constexpr unsigned order_z_prime = 8;
-  constexpr unsigned order_k_prime = 10;
+  constexpr unsigned order_k_prime = 8;
   constexpr unsigned order_y = 8;
   qIntegral2d<LegendrePolynomial<order_k_prime>, LegendrePolynomial<order_z_prime>> qint2d;
   qIntegral<LegendrePolynomial<order_y>> qint1d;
 
   // loop over q
-  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) 
+  {
     const double& q_sq = q_grid[q_iter];
     double current_acc = 1.0;
     unsigned current_step = 0;
@@ -102,10 +107,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     std::cout << "Initialized a_i...\n";
 
+    std::cout << "Starting iteration...\n";
     while (max_steps > current_step && current_acc > target_acc) {
-      std::cout << "Started a step...\n";
+      std::cout << "\nStarted a step...\n";
 
-      const std::complex<double> a_old = a[q_iter][0][0][0];
+      const auto a_old = a[q_iter];
 
       #pragma omp parallel for collapse(2)
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
@@ -115,11 +121,13 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
           // Evaluate Gij
           G g_kernel(k_sq, z, q_sq);
-          for (unsigned i = 0; i < n_structs; ++i) {
+          for (unsigned i = 0; i < n_structs; ++i)
+          {
             // Initialize the b's to 0
             b[q_iter][i][k_idx][z_idx] = 0.0;
 
-            for (unsigned j = 0; j < n_structs; ++j) {
+            for (unsigned j = 0; j < n_structs; ++j)
+            {
               // Add stuff to the b's
               b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
               //std::cout << "g_kernel[" << i << "," << j << "] = " << g_kernel.get(i, j) << "\n";
@@ -132,18 +140,22 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       std::cout << "  Calculated b_i...\n";
 
       #pragma omp parallel for// collapse(2)
-      for (unsigned i = 0; i < n_structs; ++i) {
-        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
-          for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+      for (unsigned i = 0; i < n_structs; ++i)
+      {
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        {
+          for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+          {
             // Initialize the a's with the inhomogeneous term
             a[q_iter][i][k_idx][z_idx] = z_2 * a0(i);
 
-            for (unsigned j = 0; j < n_structs; ++j) {
-
+            for (unsigned j = 0; j < n_structs; ++j)
+            {
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
-              auto f = [&](const double &k_prime_sq, const double &z_prime) {
+              auto f = [&](const double &k_prime_sq, const double &z_prime)
+              {
                 lInterpolator2d interpolate2d_b(k_grid, z_grid, b[q_iter][j]);
                 const auto b_j = interpolate2d_b(k_prime_sq, z_prime);
 
@@ -161,7 +173,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
               //std::cout << "integral = " << integral << " at k2=" << k_sq << " z=" << z << " i=" << i << " j=" << j << "\n";
 
               // Add this to the a's
-              a[q_iter][i][k_idx][z_idx] += integral;
+              a[q_iter][i][k_idx][z_idx] += integral * int_factors;
             }
           }
         }
@@ -170,16 +182,23 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       std::cout << "  Calculated a_i...\n";
 
       // TODO better convergence test
-      const std::complex<double> a_new = a[q_iter][0][0][0];
-      current_acc = abs(a_new - a_old) / abs(a_new + a_old);
+      current_acc = 0.;
+      for (unsigned i = 0; i < n_structs; ++i)
+      {
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        {
+          const auto diff = a[q_iter][i][k_idx][z_0] - a_old[i][k_idx][z_0];
+          const auto sum = a[q_iter][i][k_idx][z_0] + a_old[i][k_idx][z_0];
+          current_acc = std::max(current_acc, abs(diff) / abs(sum));
+        }
+      }
       ++current_step;
       if (current_step == max_steps) {
         std::cout << "Maximum iterations reached!" << std::endl;
       }
 
-      std::cout << "current_step = " << current_step << "\n"
-        << "a[q_iter][0][0][0] = " << a[q_iter][0][0][3] << "\n"
-        << "b[q_iter][0][0][0] = " << b[q_iter][0][0][3] << "\n";
+      std::cout << "  current_step = " << current_step << "\n"
+        << "  current_acc = " << current_acc << "\n";
     }
   }
   saveToFile(a, "file_a", "q_sq i k_sq z");

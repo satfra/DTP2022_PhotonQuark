@@ -6,15 +6,9 @@
 #include <iteration.hh>
 #include <numeric>
 
-int main(int argc, char *argv[]) {
-    // constexpr unsigned order_Q = 10;
-    // constexpr unsigned order_k = 10;
-/*
-  qIntegral2d<LegendrePolynomial<order_k>, LegendrePolynomial<order_Q>> qint;
-  auto f = [](const double& k, const double& Q){ return 2.; };
-  std::cout << "We get " << qint(f, 0., 1., 0., 2.) << "\n";*/
-
-    constexpr unsigned order_k = 20;
+int main(int argc, char *argv[]) 
+{
+    constexpr unsigned order_k = 8;
     constexpr unsigned order_q = 1;
     constexpr unsigned order_z = 8;
     static_assert(order_z % 2 == 0);
@@ -25,7 +19,7 @@ int main(int argc, char *argv[]) {
     std::iota(q_grid.begin(), q_grid.end(), 0);
 
     const double k_min = 1e-6;
-    const double k_max = 1e6;
+    const double k_max = 1e+2;
     k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), k_min, k_max);
     q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
 
