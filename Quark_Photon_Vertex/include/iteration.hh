@@ -55,13 +55,13 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
           continue;
         for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
         {
-          const double& k_sq = k_grid[k_idx];
+          const double& k_sq = std::exp(k_grid[k_idx]);
           for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
           {
             const double& z = z_grid[z_idx];
             for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
             {
-              const double& k_prime_sq = k_grid[k_prime_idx];
+              const double& k_prime_sq = std::exp(k_grid[k_prime_idx]);
               for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
               {
                 const double& z_prime = z_grid[z_prime_idx];
@@ -87,7 +87,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         }
         for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
         {
-          const double& k_sq = k_grid[k_idx];
+          const double& k_sq = std::exp(k_grid[k_idx]);
           std::cout << "K_" << i << j << "(" << k_sq << ") = " << K_prime[i][0][0][j][k_idx][0] * k_sq << "\n";
         }
       }
@@ -114,7 +114,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       {
         for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
         {
-          const double& k_sq = k_grid[k_idx];
+          const double& k_sq = std::exp(k_grid[k_idx]);
           const double& z = z_grid[z_idx];
 
           // Evaluate Gij
@@ -150,15 +150,16 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
-              auto f = [&](const double &k_prime_sq, const double &z_prime)
+              auto f = [&](const double &k_prime_sq_log, const double &z_prime)
               {
+                const double k_prime_sq = exp(k_prime_sq_log);
                 lInterpolator2d interpolate2d_b(k_grid, z_grid, b[q_iter][j]);
-                const auto b_j = interpolate2d_b(k_prime_sq, z_prime);
+                const auto b_j = interpolate2d_b(k_prime_sq_log, z_prime);
 
                 lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
-                const auto K_prime_ij = interpolate2d_K(k_prime_sq, z_prime);
+                const auto K_prime_ij = interpolate2d_K(k_prime_sq_log, z_prime);
 
-                return K_prime_ij * b_j * std::sqrt(1. - powr<2>(z_prime)) * k_prime_sq;
+                return K_prime_ij * b_j * std::sqrt(1. - powr<2>(z_prime)) * k_prime_sq * k_prime_sq;
               };
 
               // Evaluate the integral

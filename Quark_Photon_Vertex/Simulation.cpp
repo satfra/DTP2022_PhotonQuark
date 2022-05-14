@@ -18,8 +18,8 @@ int main(int argc, char *argv[])
   std::iota(q_grid.begin(), q_grid.end(), 0);
 
   std::cout << "L=" << parameters::physical::lambda_UV << " order_k=" << parameters::numerical::k_steps <<"\n";
-  k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), parameters::physical::lambda_IR,
-                       parameters::physical::lambda_UV);
+  k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), std::log(parameters::physical::lambda_IR),
+                       std::log(parameters::physical::lambda_UV));
   q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
 
   LegendrePolynomial<parameters::numerical::z_steps> lp_z;
