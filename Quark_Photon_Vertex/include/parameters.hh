@@ -3,7 +3,7 @@
 namespace parameters {
     namespace numerical {
         // The number of steps in the k/k' grid
-        constexpr unsigned int k_steps = 64;
+        constexpr unsigned int k_steps = 32;
         // The number of steps in the z/z' grid
         constexpr unsigned int z_steps = 16;
         // The number of steps in the y grid
@@ -14,7 +14,7 @@ namespace parameters {
         // Target accuracy for the iteration
         constexpr double target_acc = 1e-3;
         // Maximum number of iteration steps
-        constexpr unsigned max_steps = 10;
+        constexpr unsigned max_steps = 30;
     }
 
     namespace physical {
