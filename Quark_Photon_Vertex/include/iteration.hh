@@ -14,13 +14,10 @@
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid)
 {
+  using namespace parameters::numerical;
   const unsigned z_0 = z_grid.size() / 2;
 
   constexpr unsigned int n_structs = 12;
-  const unsigned int k_steps = k_grid.size();
-  const unsigned int z_steps = z_grid.size();
-  const unsigned int q_steps = q_grid.size();
-  const unsigned int y_steps = y_grid.size();
   const vec_cmplx temp0(z_steps, 0.0);
   const mat_cmplx temp1(k_steps, temp0);
   const tens_cmplx temp2(n_structs, temp1);
@@ -106,7 +103,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     std::cout << "Initialized a_i...\n";
 
     std::cout << "Starting iteration...\n";
-    while (parameters::numerical::max_steps > current_step && current_acc > parameters::numerical::target_acc)
+    while (max_steps > current_step && current_acc > target_acc)
     {
       std::cout << "\nStarted a step...\n";
 
@@ -191,7 +188,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       }
 
       ++current_step;
-      if (current_step == parameters::numerical::max_steps)
+      if (current_step == max_steps)
         std::cout << "Maximum iterations reached!" << std::endl;
       std::cout << "  current_step = " << current_step << "\n"
         << "  current_acc = " << current_acc << "\n";
