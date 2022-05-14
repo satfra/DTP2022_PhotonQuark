@@ -46,29 +46,27 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     ijtens2_double K_prime(n_structs, temp4_d);
 
+    // Precalculate the K kernel
     #pragma omp parallel for collapse(2)
-    for (unsigned i = 0; i < n_structs; ++i)
-    {
-      for (unsigned j = 0; j < n_structs; ++j)
-      {
+    for (unsigned i = 0; i < n_structs; ++i) {
+      for (unsigned j = 0; j < n_structs; ++j) {
         if (K::isZeroIndex(i,j))
           continue;
-        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
-        {
+
+        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx) {
           const double& k_sq = std::exp(k_grid[k_idx]);
-          for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
-          {
+
+          for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
             const double& z = z_grid[z_idx];
-            for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
-            {
+
+            for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx) {
               const double& k_prime_sq = std::exp(k_grid[k_prime_idx]);
-              for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
-              {
+
+              for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx) {
                 const double& z_prime = z_grid[z_prime_idx];
 
                 K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = 0.;
 
-                // The function to integrate
                 auto f = [&](const double &y) {
                   const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
                   const double gl = maris_tandy_g(l_sq);
@@ -85,22 +83,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
             }
           }
         }
-        for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
-        {
-          const double& k_sq = std::exp(k_grid[k_idx]);
-          std::cout << "K_" << i << j << "(" << k_sq << ") = " << K_prime[i][0][0][j][k_idx][0] * k_sq << "\n";
-        }
       }
     }
     std::cout << "Calculated K'_ij...\n";
-
-    // Initialize the a's with the inhomogeneous term
-    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
-      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
-        for (unsigned i = 0; i < n_structs; ++i)
-          a[q_iter][i][k_idx][z_idx] = 0.;//z_2 * a0(i);
-
-    std::cout << "Initialized a_i...\n";
 
     std::cout << "Starting iteration...\n";
     while (max_steps > current_step && current_acc > target_acc)
@@ -145,8 +130,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
             for (unsigned j = 0; j < n_structs; ++j)
             {
-              if(j > 8 )
-                continue;
               if (K::isZeroIndex(i,j))
                 continue;
               // The function to integrate
@@ -176,7 +159,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
       std::cout << "  Calculated a_i...\n";
 
-      // TODO better convergence test
+      // TODO: better convergence test
       current_acc = 0.;
       for (unsigned i = 0; i < n_structs; ++i)
       {
@@ -193,6 +176,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         std::cout << "Maximum iterations reached!" << std::endl;
       std::cout << "  current_step = " << current_step << "\n"
         << "  current_acc = " << current_acc << "\n";
+      if(current_acc < target_acc)
+        std::cout << "Converged!" << std::endl;
     }
   }
   saveToFile(a, "a_file.dat", "#q_sq i k_sq z");
