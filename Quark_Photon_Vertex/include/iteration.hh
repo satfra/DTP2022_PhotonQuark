@@ -197,6 +197,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         << "  current_acc = " << current_acc << "\n";
     }
   }
-  saveToFile(a, "file_a", "q_sq i k_sq z");
-  saveToFile(b, "file_b", "q_sq i k_sq z");
+  saveToFile(a, "a_file.dat", "#q_sq i k_sq z");
+  saveToFile(b, "b_file.dat", "#q_sq i k_sq z");
 }
