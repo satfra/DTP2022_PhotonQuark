@@ -4,7 +4,7 @@
 #include <iostream>
 
 // TODO: Put me at a nice home please :)
-unsigned int locate(const std::vector<double> &xx, double x)
+int locate(const std::vector<double> &xx, double x)
 {
     /*
      * This function has been taken and slightly been modified from the
@@ -20,7 +20,7 @@ unsigned int locate(const std::vector<double> &xx, double x)
     if (x == xx[0]) return 0;
     else if (x == xx[n-1]) return n-2;
 
-    unsigned int ju, jm;
+    int ju, jm;
     int jl;
     bool ascnd;
 
