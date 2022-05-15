@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <Utils.hh>
 
-#include <tbb/parallel_for.h>
+
 
 template<typename POL, typename RF = typename POL::RF>
 class qIntegral
@@ -113,7 +113,7 @@ class qIntegral3d
           for(unsigned k = 0; k < POL3::order; ++k)
             res[j] += dx1 * w1[j] * (dx2 * w2[i] * ( dx3 * w3[k] * fun(z1[j], z2[i], z3[k])));
       };
-      tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
+      for(unsigned(0), POL1::order, inner_for_loop);  /*paralell for kicked out */
 
       decltype(fun(a1,a2,a3)) result = 0.;
       for(unsigned j = 0; j < POL1::order; ++j)
