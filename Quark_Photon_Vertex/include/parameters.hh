@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include "Utils.hh"
 
 namespace parameters
 {
@@ -9,27 +10,27 @@ namespace parameters
     // number of tensor structures, is ALWAYS fixed to 12
     constexpr unsigned int n_structs = 12;
     // The number of steps in the k/k' grid
-    constexpr unsigned int k_steps = 32;
+    constexpr unsigned int k_steps = 64;
     // The number of steps in the z/z' grid
     constexpr unsigned int z_steps = 16;
     // The number of steps in the y grid
-    constexpr unsigned int y_steps = 12;
+    constexpr unsigned int y_steps = 16;
     // The number of steps in the Q grid
-    constexpr unsigned int q_steps = 2;
+    constexpr unsigned int q_steps = 16;
 
     // Target accuracy for the iteration
-    constexpr double target_acc = 1e-3;
+    constexpr double target_acc = 1e-4;
     // Maximum number of iteration steps
-    constexpr unsigned max_steps = 30;
+    constexpr unsigned max_steps = 100;
 
     // integration factor, should be fixed
     constexpr double int_factors = 0.5 / powr<4>(2. * M_PI);
 
     // Grid for the quark propagator dse
-    constexpr unsigned int quark_dse_steps_q = 600;
-    constexpr unsigned int quark_dse_steps_z = 128;
-    constexpr unsigned int quark_dse_max_steps = 100;
-    constexpr double quark_dse_acc = 1e-7;
+    constexpr unsigned int quark_dse_steps_q = 1000;
+    constexpr unsigned int quark_dse_steps_z = 256;
+    constexpr unsigned int quark_dse_max_steps = 200;
+    constexpr double quark_dse_acc = 1e-8;
   }
 
   namespace physical
