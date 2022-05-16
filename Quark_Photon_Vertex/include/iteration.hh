@@ -19,31 +19,41 @@ using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps
 using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
 using Quark = static_switch<unsigned(parameters::physical::use_quark_DSE), quark_model, quark_DSE>;
 
-double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned int q_iter,
-    double current_acc, const std::vector<mat_cmplx> &a_old) {
+double update_accuracy(const unsigned z_0, const qtens_cmplx &a, unsigned q_iter,
+    double current_acc, const mat_cmplx &a_old)
+{
   using namespace parameters::numerical;
-  for (unsigned i = 0; i < n_structs; ++i) {
-    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-      const auto diff = a[q_iter][i][k_idx][z_0] - a_old[i][k_idx][z_0];
-      const auto sum = a[q_iter][i][k_idx][z_0] + a_old[i][k_idx][z_0];
-      current_acc = std::max(current_acc, abs(diff) / abs(sum));
+  for (unsigned i = 0; i < n_structs; ++i)
+  {
+    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx)
+    {
+      const auto diff = a[q_iter][i][k_idx][z_0] - a_old[i][k_idx];
+      const auto sum = a[q_iter][i][k_idx][z_0] + a_old[i][k_idx];
+      current_acc = std::max(current_acc, abs(diff) / std::abs(sum));
     }
   }
   return current_acc;
 }
 
+mat_cmplx copy_a_old(const qtens_cmplx &a, const unsigned q_iter, const unsigned z_0)
+{
+  using namespace parameters::numerical;
+  const vec_cmplx temp0_o(k_steps, 0.0);
+  mat_cmplx a_old(n_structs, temp0_o);
+  for (unsigned i = 0; i < n_structs; ++i)
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      a_old[i][k_idx] = a[q_iter][i][k_idx][z_0];
+  return a_old;
+}
+
 template<typename Quark>
-void a_initialize(qtens_cmplx &a, unsigned int q_iter, const Quark& quark) {
+void a_initialize(qtens_cmplx &a, const unsigned q_iter, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
-  for (unsigned i = 0; i < n_structs; ++i) {
-    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-      for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
-        // Initialize the b's to 0
+  for (unsigned i = 0; i < n_structs; ++i)
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
         a[q_iter][i][k_idx][z_idx] = quark.z2() * a0(i);
-      }
-    }
-  }
 }
 
 template<typename Quark>
@@ -52,13 +62,15 @@ void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
     const Integrator2d& qint2d, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
-  for (unsigned i = 0; i < n_structs; ++i) {
-    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-      for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+  for (unsigned i = 0; i < n_structs; ++i)
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) 
+      {
         // Initialize the a's with the inhomogeneous term
         a[q_iter][i][k_idx][z_idx] = quark.z2() * a0(i);
 
-        for (unsigned j = 0; j < n_structs; ++j) {
+        for (unsigned j = 0; j < n_structs; ++j)
+        {
           if (K::isZeroIndex(i, j))
             continue;
 
@@ -76,15 +88,13 @@ void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
 
           // Evaluate the integral
           const std::complex<double> integral = qint2d(f, k_grid[0],
-              k_grid[parameters::numerical::k_steps - 1], z_grid[0],
-              z_grid[parameters::numerical::z_steps - 1]);
+              k_grid[k_steps - 1], z_grid[0],
+              z_grid[z_steps - 1]);
 
           // Add this to the a's
           a[q_iter][i][k_idx][z_idx] += integral * 2.0 * M_PI * int_factors;
         }
       }
-    }
-  }
 }
 
 template<typename Quark>
@@ -92,24 +102,24 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
     const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &b, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
-  for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-    for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+  for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+    for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) 
+    {
       const double k_sq = std::exp(k_grid[k_idx]);
       const double &z = z_grid[z_idx];
 
       // Evaluate Gij
       const G<Quark> g_kernel(k_sq, z, q_sq, quark);
-      for (unsigned i = 0; i < n_structs; ++i) {
+      for (unsigned i = 0; i < n_structs; ++i)
+      {
         // Initialize the b's to 0
         b[q_iter][i][k_idx][z_idx] = 0.0;
 
         // Add stuff to the b's
-        for (unsigned j = 0; j < n_structs; ++j) {
+        for (unsigned j = 0; j < n_structs; ++j)
           b[q_iter][i][k_idx][z_idx] += g_kernel.get(i, j) * a[q_iter][j][k_idx][z_idx];
-        }
       }
     }
-  }
 }
 
 template<typename Quark>
@@ -118,26 +128,32 @@ void precalculate_K_kernel(const vec_double &y_grid,
     const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
-  for (unsigned i = 0; i < n_structs; ++i) {
-    for (unsigned j = 0; j < n_structs; ++j) {
+  for (unsigned i = 0; i < n_structs; ++i)
+    for (unsigned j = 0; j < n_structs; ++j)
+    {
       if (K::isZeroIndex(i, j))
         continue;
 
-      for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      {
         const double k_sq = std::exp(k_grid[k_idx]);
 
-        for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+        {
           const double &z = z_grid[z_idx];
 
-          for (unsigned k_prime_idx = 0; k_prime_idx < parameters::numerical::k_steps; ++k_prime_idx) {
+          for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
+          {
             const double &k_prime_sq = exp(k_grid[k_prime_idx]);
 
-            for (unsigned z_prime_idx = 0; z_prime_idx < parameters::numerical::z_steps; ++z_prime_idx) {
+            for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
+            {
               const double &z_prime = z_grid[z_prime_idx];
 
               K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = 0.;
 
-              auto f = [&](const double &y) {
+              auto f = [&](const double &y)
+              {
                 const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
 
                 const double gl = parameters::physical::pauliVillars ? pauli_villars_g(l_sq, quark): maris_tandy_g(l_sq, quark);
@@ -147,7 +163,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
               };
 
               // Evaluate the integral
-              const double integral = qint1d(f, y_grid[0], y_grid[parameters::numerical::y_steps - 1]);
+              const double integral = qint1d(f, y_grid[0], y_grid[y_steps - 1]);
 
               // Add this to the a's
               K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = integral;
@@ -156,17 +172,18 @@ void precalculate_K_kernel(const vec_double &y_grid,
         }
       }
     }
-  }
 }
 
 void transform_a_to_fg(qtens_cmplx &a, 
-    const vec_double &q_grid, const vec_double &k_grid, const vec_double &z_grid) {
+    const vec_double &q_grid, const vec_double &k_grid, const vec_double &z_grid)
+{
   using namespace parameters::numerical;
   using namespace basistransform;
 
-  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
-    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-      for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++)
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+      {
         vec_cmplx a_copy(n_structs);
         for(unsigned i = 0; i < n_structs; ++i)
           a_copy[i] = a[q_iter][i][k_idx][z_idx];
@@ -191,8 +208,6 @@ void transform_a_to_fg(qtens_cmplx &a,
         a[q_iter][10][k_idx][z_idx] = g3(Q, s, z, k, a_copy);
         a[q_iter][11][k_idx][z_idx] = g4(Q, s, z, k, a_copy);
       }
-    }
-  }
 }
 
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid)
@@ -219,7 +234,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const Quark quark;
 
   // loop over q
-  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+  for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
+  {
     const double &q_sq = q_grid[q_iter];
     double current_acc = 1.0;
     unsigned current_step = 0;
@@ -234,11 +250,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     a_initialize(a, q_iter, quark);
 
     std::cout << "Starting iteration...\n";
-    while (max_steps > current_step && current_acc > target_acc) {
+    while (max_steps > current_step && current_acc > target_acc)
+    {
       std::cout << "\nStarted a step...\n";
 
       // consider NOT copying... RAM lol
-      const auto a_old = a[q_iter];
+      const auto a_old = copy_a_old(a, q_iter, z_0);
 
       b_iteration_step(a, q_iter, q_sq, z_grid, k_grid, b, quark);
 
@@ -252,20 +269,18 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       current_acc = update_accuracy(z_0, a, q_iter, current_acc, a_old);
 
       ++current_step;
-      if (current_step == max_steps) {
+      if (current_step == max_steps)
         std::cout << "Maximum iterations reached!" << std::endl;
-      }
       std::cout << "  current_step = " << current_step << "\n" << "  current_acc = " << current_acc << "\n";
-      if (current_acc < target_acc) {
+      if (current_acc < target_acc)
         std::cout << "----> Converged!" << std::endl;
-      }
     }
   }
 
   // transform to g,f (almost in place!)
   transform_a_to_fg(a, q_grid, k_grid, z_grid);
   const auto& fg = a;
- 
+
   // TODO check WTI
 
 const tens_cmplx temp2_w(3, temp1);
