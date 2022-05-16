@@ -46,7 +46,9 @@ void wti (const double Q, const double s, const double z, const double k,  std::
     std::complex<double> wti1= g1 - std::complex<double> (Sigma_A(kminus2,kplus2));
     std::complex<double> wti2= g2 - std::complex<double>(Delta_A(kminus2,kplus2));
     std::complex<double> wti3= g3 - std::complex<double> (Delta_B(kminus2,kplus2));
+
    
+     std::cout << "for parameters (Q,s,z,k) = " << "( " << Q << "," << s << "," << z << ", " << k << ")" << std::endl;
      std::cout << "deviation of WTI given by:" << std::endl;
      std::cout << "devg1 = " << wti1 << std::endl;
      std:: cout << "devg2= " << wti2  << std::endl;
