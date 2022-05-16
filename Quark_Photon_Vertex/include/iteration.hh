@@ -56,7 +56,7 @@ void a_initialize(qtens_cmplx &a, const unsigned q_iter, const Quark& quark) {
 }
 
 template<typename Quark>
-void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
+void a_iteration_step(const qtens_cmplx &b, unsigned q_iter,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &a,
     const Integrator2d& qint2d, const Quark& quark) {
   using namespace parameters::numerical;
@@ -97,7 +97,7 @@ void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
 }
 
 template<typename Quark>
-void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q_sq,
+void b_iteration_step(const qtens_cmplx &a, unsigned q_iter, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &b, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
@@ -179,7 +179,7 @@ void transform_a_to_fg(qtens_cmplx &a,
   using namespace parameters::numerical;
   using namespace basistransform;
 
-  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++)
+  for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
       {

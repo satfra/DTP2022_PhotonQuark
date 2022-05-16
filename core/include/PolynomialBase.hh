@@ -4,6 +4,8 @@
 #include <cmath>
 #include <iostream>
 
+#include "Utils.hh"
+
 template<typename POL, typename _RF>
 class PolynomialBase
 {
@@ -36,18 +38,18 @@ class PolynomialBase
     std::vector<RF> _z;
     std::vector<RF> _w;
 
-    void calcZeros()
+    virtual void calcZeros()
     {
       _z.resize(order);
       for(unsigned i = 0; i < order; ++i)
       {
         unsigned j = order - 1 - i;
-        const RF initialGuess = std::cos(M_PI * (RF(j+1) - 0.25) / (order + 0.5));
-        _z[i] = getZero(initialGuess);
+        const RF iG = initialGuess(j);
+        _z[i] = getZero(iG);
       }
     }
 
-    void calcWeights()
+    virtual void calcWeights()
     {
       if(_z.size() == 0)
         calcZeros();
@@ -61,6 +63,7 @@ class PolynomialBase
 
     virtual RF P(const RF& x) const = 0;
     virtual RF dP(const RF& x) const = 0;
+    virtual RF initialGuess(unsigned j) const = 0;
 
   public:
     static constexpr unsigned order = POL::order;
