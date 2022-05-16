@@ -16,7 +16,7 @@
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
 using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
-using Quark = quark_model;
+using Quark = static_switch<unsigned(parameters::physical::use_quark_DSE), quark_model, quark_DSE>;
 
 double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned int q_iter,
     double current_acc, const std::vector<mat_cmplx> &a_old) {

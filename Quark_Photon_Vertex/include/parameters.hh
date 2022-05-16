@@ -31,6 +31,7 @@ namespace parameters {
     }
 
     namespace physical {
+        constexpr bool use_quark_DSE = true;
         // The UV cutoff for k^2
         constexpr double lambda_UV = 1e6;
         // The IR cutoff for k^2

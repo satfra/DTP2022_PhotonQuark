@@ -18,6 +18,9 @@ typedef std::vector<tens_double> tens2_double;
 typedef std::vector<tens2_double> jtens2_double;
 typedef std::vector<jtens2_double> ijtens2_double;
 
+template<std::size_t N, typename... T>
+  using static_switch = typename std::tuple_element<N, std::tuple<T...> >::type;
+
   template<int n, typename RF> 
 constexpr RF powr(const RF& x)
 {
