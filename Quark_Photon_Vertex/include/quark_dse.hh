@@ -280,10 +280,11 @@ mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, dou
     std::cout << "# Iteration ended after " << k << " iterations." << std::endl;
 
     // Preparing array for return...
-    mat_double a2d(3);
+    mat_double a2d(4);
     a2d[0] = a_values;
     a2d[1] = b_values;
-    a2d[2] = renorm;
+    a2d[2] = dse_absci_q;
+    a2d[3] = renorm;
 
     return a2d;
 }

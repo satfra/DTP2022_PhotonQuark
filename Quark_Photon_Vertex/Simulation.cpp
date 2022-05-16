@@ -30,9 +30,11 @@ int main(int argc, char *argv[])
 
   iterate_a_and_b(q_grid, z_grid, k_grid, y_grid);
 
-  mat_double quark_a_and_b = quark_iterate_dressing_functions(1.0, 0.0037, 0.0037, 19);
-  vec_double quark_a = quark_a_and_b[0];
-  vec_double quark_b = quark_a_and_b[1];
+  const mat_double quark_a_and_b = quark_iterate_dressing_functions(1.0, 0.0037, 0.0037, 19);
+  const vec_double quark_a = quark_a_and_b[0];
+  const vec_double quark_b = quark_a_and_b[1];
+  const vec_double quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
+  const double z_2 = quark_a_and_b[3][0];
 
   saveToFile(quark_a, "quark_a.txt");
   saveToFile(quark_b, "quark_b.txt");
