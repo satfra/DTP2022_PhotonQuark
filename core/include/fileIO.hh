@@ -30,6 +30,7 @@ void saveToFile(const qtens_cmplx& data, const std::string& file, const std::str
   fileStream.close();
 }
 
+template<unsigned N>
 void saveToFile_withGrids(const qtens_cmplx& data, const std::string& file, const std::string& header,
     const vec_double &q_grid, const vec_double &k_grid, const vec_double &z_grid)
 {
@@ -42,7 +43,7 @@ void saveToFile_withGrids(const qtens_cmplx& data, const std::string& file, cons
   for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++)
   {
     const double &q_sq = q_grid[q_iter];
-    for(unsigned i = 0; i < n_structs; ++i)
+    for(unsigned i = 0; i < N; ++i)
     {
       for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       {
