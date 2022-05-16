@@ -132,7 +132,8 @@ void precalculate_K_kernel(const vec_double &y_grid,
 
               auto f = [&](const double &y) {
                 const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
-                const double gl = maris_tandy_g(l_sq);
+
+                const double gl = parameters::physical::pauliVillars ? pauli_villars_g(l_sq): maris_tandy_g(l_sq);
                 K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
                 return gl * k_kernel.get(i, j);
               };
