@@ -8,7 +8,7 @@ FILE(GLOB SRCFILES ./source/*.cpp)
 add_executable(Quark_Photon_Vertex Simulation.cpp ${SRCFILES})
 
 # link against the external libraries
-target_link_libraries(Quark_Photon_Vertex pthread tbb)
+target_link_libraries(Quark_Photon_Vertex pthread)
 
 # lastly, we copy the config and the openCL kernels so that the program can be used.
 add_compile_definitions(KPM_OPENCL_KERNELS_DIR="empty")
