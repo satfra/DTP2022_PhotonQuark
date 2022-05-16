@@ -33,7 +33,6 @@ double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx 
       const auto sum = current_a + a_old[i][k_idx];
       if(!isEqual(std::abs(sum), 0.))
         current_acc = std::max(current_acc, abs(diff) / std::abs(sum));
-      std::cout << current_a << " " << diff << " " << sum << " " << current_acc << "\n";
     }
   return current_acc;
 }
