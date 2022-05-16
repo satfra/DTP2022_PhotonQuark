@@ -53,7 +53,7 @@ class quark_DSE
       lInterpolator ip_b(quark_grid, quark_b);
       return ip_b(q)/ip_a(q);
     }
-    
+
     double z2() const
     {
       return quark_z2;
