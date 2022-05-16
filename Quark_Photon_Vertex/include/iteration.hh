@@ -42,8 +42,8 @@ mat_cmplx average_array_z0(const tens_cmplx &a, const unsigned z_0)
   using namespace parameters::numerical;
   mat_cmplx a_z0(n_structs, vec_cmplx(k_steps, 0.0));
 
-  for (unsigned i = 0; i < n_structs; ++i)
-    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+  for (unsigned i = 0; i < a.size(); ++i)
+    for (unsigned k_idx = 0; k_idx < a[k_idx].size(); ++k_idx)
       a_z0[i][k_idx] = 0.5 * (a[i][k_idx][z_0-1] + a[i][k_idx][z_0]);
   return a_z0;
 }
