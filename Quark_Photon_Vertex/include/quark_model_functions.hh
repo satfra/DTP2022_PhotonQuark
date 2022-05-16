@@ -3,6 +3,10 @@
 #include <cmath>
 #include "parameters.hh"
 
+
+//Pauli-Villars regularization
+
+
 // The model for A(x) given in the project description
 double quark_a_function_model(const double& x)
 {
@@ -33,6 +37,32 @@ double maris_tandy_alpha(const double& p_squared)
             (lambda_qcd * lambda_qcd)) * (1.0 + p_squared /
             (lambda_qcd * lambda_qcd)));
     return irterm + uvterm;
+}
+
+
+double pauli_villars_alpha(const double& p_squared)
+{
+  double const lambda_sq=40000;
+   using namespace parameters::physical;
+    const double x = p_squared / (lambda_mt * lambda_mt);
+    const double irterm = eta_mt * eta_mt *
+            eta_mt * eta_mt * eta_mt *
+            eta_mt * eta_mt * M_PI * x * x *
+            exp(-(eta_mt * eta_mt) * x);
+    const double uvterm = (2.0 * M_PI * gamma_m * (1.0 - exp(-p_squared /
+            (lambda_0 * lambda_0)))) / log(M_E * M_E - 1.0 + (1.0 + p_squared /
+            (lambda_qcd * lambda_qcd)) * (1.0 + p_squared /
+            (lambda_qcd * lambda_qcd)));
+    return (irterm + uvterm)/(1+p_squared/lambda_sq);
+  
+  
+}
+
+double pauli_villars_g(const double& p_squared)
+{
+
+    return parameters::physical::z_2 * parameters::physical::z_2 * 16.0 * M_PI * pauli_villars_alpha(p_squared) /
+            (3.0 * p_squared);
 }
 
 // This is just the function g(k^2) from eq. 19 in the project description,

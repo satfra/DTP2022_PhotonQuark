@@ -40,6 +40,7 @@ namespace parameters {
         // The parameters for Maris-Tandy
         constexpr double eta_mt = 1.8;
         constexpr double lambda_mt = 0.72;
+        constexpr bool pauliVillars = true;
 
         // The UV parameters for Maris-Tandy
         constexpr double lambda_qcd = 0.234;
