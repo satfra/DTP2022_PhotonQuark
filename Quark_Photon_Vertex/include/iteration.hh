@@ -268,20 +268,18 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       current_acc = update_accuracy(z_0, a, q_iter, current_acc, a_old);
 
       ++current_step;
-      if (current_step == max_steps) {
+      if (current_step == max_steps)
         std::cout << "Maximum iterations reached!" << std::endl;
-      }
       std::cout << "  current_step = " << current_step << "\n" << "  current_acc = " << current_acc << "\n";
-      if (current_acc < target_acc) {
+      if (current_acc < target_acc)
         std::cout << "----> Converged!" << std::endl;
-      }
     }
   }
 
   // transform to g,f (almost in place!)
   transform_a_to_fg(a, q_grid, k_grid, z_grid);
   const auto& fg = a;
- 
+
   // TODO check WTI
 
   saveToFile_withGrids(fg, "fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)", 
