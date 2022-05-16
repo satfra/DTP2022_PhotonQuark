@@ -335,7 +335,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     }
     saveToFile_withGrids<3>(w, "w_file.dat", q_sq, k_grid, z_grid);
     const auto w_z0 = average_array_z0(w, z_0);
-    saveToFile_withGrids<n_structs>(w_z0, "w_z0_file.dat", q_sq, k_grid);
+    saveToFile_withGrids<3>(w_z0, "w_z0_file.dat", q_sq, k_grid);
   }
 
   auto end_time = steady_clock::now();
