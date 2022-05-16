@@ -189,6 +189,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     while (max_steps > current_step && current_acc > target_acc) {
       std::cout << "\nStarted a step...\n";
 
+      // consider NOT copying... RAM lol
       const auto a_old = a[q_iter];
 
       b_iteration_step(a, q_iter, q_sq, z_grid, k_grid, b);
