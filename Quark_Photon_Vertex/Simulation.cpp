@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
   // create the q_grid, fill it and transform it to the correct range
   std::vector<double> q_grid(parameters::numerical::q_steps);
   std::iota(q_grid.begin(), q_grid.end(), 0);
-  q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
+  q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), parameters::numerical::min_q_sq, parameters::numerical::max_q_sq);
 
   // We use the zeroes of LegendrePolynomials for the z and y grids
   LegendrePolynomial<parameters::numerical::z_steps> lp_z;

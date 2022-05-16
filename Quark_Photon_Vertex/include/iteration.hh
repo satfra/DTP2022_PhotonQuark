@@ -26,26 +26,27 @@ double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx 
 
   using namespace parameters::numerical;
   for (unsigned i = 0; i < n_structs; ++i)
-  {
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
     {
-      const auto diff = a[i][k_idx][z_0] - a_old[i][k_idx];
-      const auto sum = a[i][k_idx][z_0] + a_old[i][k_idx];
-      current_acc = std::max(current_acc, abs(diff) / std::abs(sum));
+      const auto current_a = 0.5 * (a[i][k_idx][z_0-1] + a[i][k_idx][z_0]);
+      const auto diff = current_a - a_old[i][k_idx];
+      const auto sum = current_a + a_old[i][k_idx];
+      if(!isEqual(std::abs(sum), 0.))
+        current_acc = std::max(current_acc, abs(diff) / std::abs(sum));
+      std::cout << current_a << " " << diff << " " << sum << " " << current_acc << "\n";
     }
-  }
   return current_acc;
 }
 
-mat_cmplx copy_a_old(const tens_cmplx &a, const unsigned z_0)
+mat_cmplx average_array_z0(const tens_cmplx &a, const unsigned z_0)
 {
   using namespace parameters::numerical;
-  mat_cmplx a_old(n_structs, vec_cmplx(k_steps, 0.0));
+  mat_cmplx a_z0(n_structs, vec_cmplx(k_steps, 0.0));
 
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
-      a_old[i][k_idx] = a[i][k_idx][z_0];
-  return a_old;
+      a_z0[i][k_idx] = 0.5 * (a[i][k_idx][z_0-1] + a[i][k_idx][z_0]);
+  return a_z0;
 }
 
 double a0 (const unsigned& i)
@@ -239,7 +240,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
   // prepare output files
   emptyFile("fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)");
+  emptyFile("fg_z0_file.dat", "#q_sq i k_sq Re(fg) Im(fg)");
   emptyFile("w_file.dat", "#q_sq i k_sq z Re(w) Im(w)");
+  emptyFile("w_z0_file.dat", "#q_sq i k_sq Re(w) Im(w)");
 
   // loop over q
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
@@ -271,7 +274,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       debug_out("\n    Started a step...\n", debug);
       
       // copy for checking the convergence
-      const auto a_old = copy_a_old(a, z_0);
+      const auto a_old = average_array_z0(a, z_0);
 
       debug_out("    Calculating b_i...", debug);
       b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);
@@ -296,6 +299,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     const auto& fg = a;
     // save to the prepared file
     saveToFile_withGrids<n_structs>(fg, "fg_file.dat", q_sq, k_grid, z_grid);
+    // save to the prepared file
+    const auto fg_z0 = average_array_z0(fg, z_0);
+    saveToFile_withGrids<n_structs>(fg_z0, "fg_z0_file.dat", q_sq, k_grid);
     std::cout << "  done\n";
 
     const auto iter_end_time = steady_clock::now();
@@ -329,6 +335,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       }
     }
     saveToFile_withGrids<3>(w, "w_file.dat", q_sq, k_grid, z_grid);
+    const auto w_z0 = average_array_z0(w, z_0);
+    saveToFile_withGrids<n_structs>(w_z0, "w_z0_file.dat", q_sq, k_grid);
   }
 
   auto end_time = steady_clock::now();

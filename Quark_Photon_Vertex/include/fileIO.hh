@@ -46,3 +46,21 @@ void saveToFile_withGrids(const tens_cmplx& data, const std::string& file,
   }
   fileStream.close();
 }
+
+template<unsigned N>
+void saveToFile_withGrids(const mat_cmplx& data, const std::string& file,
+    const double& q_sq, const vec_double &k_grid)
+{
+  std::ofstream fileStream;
+  fileStream.open(file, std::ios_base::app);
+
+  for(unsigned i = 0; i < N; ++i)
+  {
+    for (unsigned k_idx = 0; k_idx < k_grid.size(); ++k_idx)
+    {
+      const double k_sq = std::exp(k_grid[k_idx]);
+      fileStream << q_sq << " " << i << " " << k_sq << " " << data[i][k_idx].real() << " " << data[i][k_idx].imag() << "\n";
+    }
+  }
+  fileStream.close();
+}
