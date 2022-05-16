@@ -13,6 +13,7 @@
 #include "basistransform.hh"
 #include "omp.h"
 #include "maris_tandy.hh"
+#include "WTI.hh"
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
 using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
@@ -282,6 +283,33 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
   // TODO check WTI
 
-  saveToFile_withGrids(fg, "fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)", 
+const tens_cmplx temp2_w(3, temp1);
+qtens_cmplx w(q_steps, temp2_w);
+
+for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+   for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
+      for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+        
+        const double Q = std::sqrt(q_grid[q_iter]);
+        const double k_sq = std::exp(k_grid[k_idx]);
+        const double k = std::sqrt(k_sq);
+        const double& z = z_grid[z_idx];
+
+         double kplus2 =  k_sq+ powr<2>(Q)/4 + k*Q*z;
+          double kminus2 =  k_sq + powr<2>(Q)/4 - k*Q*z;
+        
+        w[q_iter][0][k_idx][z_idx]=Sigma_A<Quark>(kminus2,kplus2,quark) ;
+        w[q_iter][1][k_idx][z_idx]=Delta_A<Quark>(kminus2,kplus2,quark) ;
+        w[q_iter][2][k_idx][z_idx]=Delta_B<Quark>(kminus2,kplus2,quark) ;
+      }
+  }
+}
+
+
+  saveToFile_withGrids<n_structs>(fg, "fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)", 
       q_grid, k_grid, z_grid);
+
+saveToFile_withGrids<3>(w, "w_file.dat", "#q_sq i k_sq z Re(w) Im(w)", 
+      q_grid, k_grid, z_grid);
+
 }
