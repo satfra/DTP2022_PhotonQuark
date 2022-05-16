@@ -5,16 +5,17 @@
 #include <complex>
 #include <vector>
 
+template<typename Quark>
 class G
 {
   static constexpr std::complex<double> II = {0.0, 1.0}; // NOLINT(cert-err58-cpp)
-  // The factor of 0.7 is put into place for now, but might need double-checking.
-  static constexpr double ScaleFactor_AM = 1./(0.7*0.7);
+
+  const Quark& quark;
 
   double sigma_v(const double& k_sq) const
   {
-    const double z = 1.0 / quark_a_function_model(ScaleFactor_AM * k_sq);
-    const double m = quark_m_function_model(ScaleFactor_AM * k_sq);
+    const double z = 1.0 / quark.A(k_sq);
+    const double m = quark.M(k_sq);
     const double denom = 1.0 / (k_sq + m * m);
 
     return z * denom;
@@ -29,8 +30,8 @@ class G
     // But maybe the compiler does that for us anyway.
     const double kp_sq = k_sq + 0.25 * q_sq + std::sqrt(k_sq * q_sq) * z;
     const double km_sq = k_sq + 0.25 * q_sq - std::sqrt(k_sq * q_sq) * z;
-    const double m_kp = quark_m_function_model(ScaleFactor_AM * kp_sq);
-    const double m_km = quark_m_function_model(ScaleFactor_AM * km_sq);
+    const double m_kp = quark.M(kp_sq);
+    const double m_km = quark.M(km_sq);
 
     const double sigma_m = 0.5 * (m_kp + m_km);
     const double delta_m = (m_kp - m_km) / (kp_sq - km_sq);
@@ -146,7 +147,8 @@ class G
   const std::complex<double> zero = 0.;
 
   public:
-    G(const double& k_sq, const double& z, const double& q_sq)
+    G(const double& k_sq, const double& z, const double& q_sq, const Quark& quark_)
+      : quark(quark_)
     {
       G_upper.resize(4, submatrixrow(4));
       G_lower.resize(4, submatrixrow(4));

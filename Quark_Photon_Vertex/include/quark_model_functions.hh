@@ -2,74 +2,77 @@
 
 #include <cmath>
 #include "parameters.hh"
+#include "quark_dse.hh"
+#include "Utils.hh"
+#include "LinearInterpolate.hh"
 
-
-//Pauli-Villars regularization
-
-
-// The model for A(x) given in the project description
-double quark_a_function_model(const double& x)
+class quark_model
 {
-    return 0.95 + 0.3 / std::log(x + 2.0) + 0.1 / (1.0 + x) + 0.29 * std::exp(-0.1 * x)
+  private:
+    static constexpr double z_2 = 0.97;
+    static constexpr double ScaleFactor_AM = 1./(0.7*0.7);
+
+  public:
+    // The model for A(x) given in the project description
+    double A(const double& p_sq) const
+    {
+      const double x = ScaleFactor_AM * p_sq;
+      return 0.95 + 0.3 / std::log(x + 2.0) + 0.1 / (1.0 + x) + 0.29 * std::exp(-0.1 * x)
         - 0.18 * std::exp(-3.0 * x);
-}
+    }
 
-// The model for B(x) given in the project description
-double quark_m_function_model(const double& x)
+    // The model for B(x) given in the project description
+    double M(const double& p_sq) const
+    {
+      const double x = ScaleFactor_AM * p_sq;
+      return 0.06 / (1.0 + x) + 0.44 * std::exp(-0.66 * x) + 0.009 / pow(std::log(x + 2.0), 0.48);
+    }
+
+    double z2() const
+    {
+      return z_2;
+    }
+};
+
+class quark_DSE
 {
-  return 0.06 / (1.0 + x) + 0.44 * std::exp(-0.66 * x) + 0.009 / pow(std::log(x + 2.0), 0.48);
-}
+  public:
+    // The model for A(x) given in the project description
+    double A(const double& p_sq) const
+    {
+      const double q = std::log(p_sq);
+      lInterpolator ip_a(quark_grid, quark_a);
+      return ip_a(q);
+    }
 
-/*
- * This is the running coupling used in the Maris-Tandy model. This version
- * has been taken from 1606.09602v2.
- */
-double maris_tandy_alpha(const double& p_squared)
-{
-    using namespace parameters::physical;
-    const double x = p_squared / (lambda_mt * lambda_mt);
-    const double irterm = eta_mt * eta_mt *
-            eta_mt * eta_mt * eta_mt *
-            eta_mt * eta_mt * M_PI * x * x *
-            exp(-(eta_mt * eta_mt) * x);
-    const double uvterm = (2.0 * M_PI * gamma_m * (1.0 - exp(-p_squared /
-            (lambda_0 * lambda_0)))) / log(M_E * M_E - 1.0 + (1.0 + p_squared /
-            (lambda_qcd * lambda_qcd)) * (1.0 + p_squared /
-            (lambda_qcd * lambda_qcd)));
-    return irterm + uvterm;
-}
+    // The model for B(x) given in the project description
+    double M(const double& p_sq) const
+    {
+      const double q = std::log(p_sq);
+      lInterpolator ip_a(quark_grid, quark_a);
+      lInterpolator ip_b(quark_grid, quark_b);
+      return ip_b(q)/ip_a(q);
+    }
+    
+    double z2() const
+    {
+      return quark_z2;
+    }
 
+    quark_DSE()
+    {
+      const mat_double quark_a_and_b = quark_iterate_dressing_functions(
+          parameters::physical::quark_a0,
+          parameters::physical::m_c,
+          parameters::physical::m_c,
+          parameters::physical::mu);
+      quark_a = quark_a_and_b[0];
+      quark_b = quark_a_and_b[1];
+      quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
+      quark_z2 = quark_a_and_b[3][0];
+    }
 
-double pauli_villars_alpha(const double& p_squared)
-{
-  double const lambda_sq=40000;
-   using namespace parameters::physical;
-    const double x = p_squared / (lambda_mt * lambda_mt);
-    const double irterm = eta_mt * eta_mt *
-            eta_mt * eta_mt * eta_mt *
-            eta_mt * eta_mt * M_PI * x * x *
-            exp(-(eta_mt * eta_mt) * x);
-    const double uvterm = (2.0 * M_PI * gamma_m * (1.0 - exp(-p_squared /
-            (lambda_0 * lambda_0)))) / log(M_E * M_E - 1.0 + (1.0 + p_squared /
-            (lambda_qcd * lambda_qcd)) * (1.0 + p_squared /
-            (lambda_qcd * lambda_qcd)));
-    return (irterm + uvterm)/(1+p_squared/lambda_sq);
-  
-  
-}
-
-double pauli_villars_g(const double& p_squared)
-{
-
-    return parameters::physical::z_2 * parameters::physical::z_2 * 16.0 * M_PI * pauli_villars_alpha(p_squared) /
-            (3.0 * p_squared);
-}
-
-// This is just the function g(k^2) from eq. 19 in the project description,
-// i.e. the function alpha(k^2) with some constant factors
-double maris_tandy_g(const double& p_squared)
-{
-
-    return parameters::physical::z_2 * parameters::physical::z_2 * 16.0 * M_PI * maris_tandy_alpha(p_squared) /
-            (3.0 * p_squared);
-}
+  private:
+    vec_double quark_a, quark_b, quark_grid;
+    double quark_z2;
+};

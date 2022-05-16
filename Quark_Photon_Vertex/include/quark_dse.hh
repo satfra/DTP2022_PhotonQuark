@@ -1,3 +1,8 @@
+#pragma once
+
+#include "Utils.hh"
+#include "maris_tandy.hh"
+
 struct weight_struc {
     const vec_double &dse_absci_q;
     const vec_double &dse_weights_q;

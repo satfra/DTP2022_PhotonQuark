@@ -30,17 +30,5 @@ int main(int argc, char *argv[])
 
   iterate_a_and_b(q_grid, z_grid, k_grid, y_grid);
 
-  const mat_double quark_a_and_b = quark_iterate_dressing_functions(parameters::physical::quark_a0,
-                                                                    parameters::physical::m_c,
-                                                                    parameters::physical::m_c,
-                                                                    parameters::physical::mu);
-  const vec_double quark_a = quark_a_and_b[0];
-  const vec_double quark_b = quark_a_and_b[1];
-  const vec_double quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
-  const double z_2 = quark_a_and_b[3][0];
-
-  saveToFile(quark_a, "quark_a.txt");
-  saveToFile(quark_b, "quark_b.txt");
-
   return 0;
 }

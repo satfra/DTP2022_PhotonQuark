@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cmath>
+
 namespace parameters {
     namespace numerical {
         // number of tensor structures, is ALWAYS fixed to 12
@@ -33,9 +35,6 @@ namespace parameters {
         constexpr double lambda_UV = 1e6;
         // The IR cutoff for k^2
         constexpr double lambda_IR = 1e-6;
-
-        // The value for z_2
-        constexpr double z_2 = 0.97;
 
         // The parameters for Maris-Tandy
         constexpr double eta_mt = 1.8;

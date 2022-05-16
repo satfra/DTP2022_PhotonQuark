@@ -12,9 +12,11 @@
 #include "parameters.hh"
 #include "basistransform.hh"
 #include "omp.h"
+#include "maris_tandy.hh"
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
 using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
+using Quark = quark_model;
 
 double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned int q_iter,
     double current_acc, const std::vector<mat_cmplx> &a_old) {
@@ -29,29 +31,31 @@ double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned in
   return current_acc;
 }
 
-void a_initialize(qtens_cmplx &a, unsigned int q_iter) {
+template<typename Quark>
+void a_initialize(qtens_cmplx &a, unsigned int q_iter, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
       for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
         // Initialize the b's to 0
-        a[q_iter][i][k_idx][z_idx] = parameters::physical::z_2 * a0(i);
+        a[q_iter][i][k_idx][z_idx] = quark.z2() * a0(i);
       }
     }
   }
 }
 
+template<typename Quark>
 void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &a,
-    const Integrator2d& qint2d) {
+    const Integrator2d& qint2d, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
       for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
         // Initialize the a's with the inhomogeneous term
-        a[q_iter][i][k_idx][z_idx] = parameters::physical::z_2 * a0(i);
+        a[q_iter][i][k_idx][z_idx] = quark.z2() * a0(i);
 
         for (unsigned j = 0; j < n_structs; ++j) {
           if (K::isZeroIndex(i, j))
@@ -82,8 +86,9 @@ void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
   }
 }
 
+template<typename Quark>
 void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q_sq,
-    const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &b) {
+    const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &b, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
@@ -92,7 +97,7 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
       const double &z = z_grid[z_idx];
 
       // Evaluate Gij
-      G g_kernel(k_sq, z, q_sq);
+      const G<Quark> g_kernel(k_sq, z, q_sq, quark);
       for (unsigned i = 0; i < n_structs; ++i) {
         // Initialize the b's to 0
         b[q_iter][i][k_idx][z_idx] = 0.0;
@@ -106,9 +111,10 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
   }
 }
 
+template<typename Quark>
 void precalculate_K_kernel(const vec_double &y_grid,
     const Integrator1d &qint1d, const double &q_sq,
-    const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime) {
+    const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime, const Quark& quark) {
   using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
@@ -132,7 +138,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
 
               auto f = [&](const double &y) {
                 const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
-                const double gl = maris_tandy_g(l_sq);
+                const double gl = maris_tandy_g(l_sq, quark);
                 K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
                 return gl * k_kernel.get(i, j);
               };
@@ -207,6 +213,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   Integrator1d qint1d;
   Integrator2d qint2d;
 
+  const Quark quark;
+
   // loop over q
   for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
     const double &q_sq = q_grid[q_iter];
@@ -216,11 +224,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     ijtens2_double K_prime(n_structs, temp4_d);
 
     // Precalculate the K kernel
-    precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid, K_prime);
+    precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid, K_prime, quark);
     std::cout << "Calculated K'_ij...\n";
 
     // Initialize a with bare vertex
-    a_initialize(a, q_iter);
+    a_initialize(a, q_iter, quark);
 
     std::cout << "Starting iteration...\n";
     while (max_steps > current_step && current_acc > target_acc) {
@@ -229,11 +237,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       // consider NOT copying... RAM lol
       const auto a_old = a[q_iter];
 
-      b_iteration_step(a, q_iter, q_sq, z_grid, k_grid, b);
+      b_iteration_step(a, q_iter, q_sq, z_grid, k_grid, b, quark);
 
       std::cout << "  Calculated b_i...\n";
 
-      a_iteration_step(b, q_iter, K_prime, z_grid, k_grid, a, qint2d);
+      a_iteration_step(b, q_iter, K_prime, z_grid, k_grid, a, qint2d, quark);
 
       std::cout << "  Calculated a_i...\n";
 
