@@ -14,6 +14,8 @@
 
 constexpr unsigned int n_structs = 12;
 constexpr double int_factors = 0.5 / powr<4>(2. * M_PI);
+using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
+using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
 
 double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned int q_iter,
     double current_acc, const std::vector<mat_cmplx> &a_old) {
@@ -41,7 +43,7 @@ void a_initialize(qtens_cmplx &a, unsigned int q_iter) {
 
 void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &a,
-    qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>& qint2d) {
+    const Integrator2d& qint2d) {
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
@@ -102,7 +104,7 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
 }
 
 void precalculate_K_kernel(const vec_double &y_grid,
-    qIntegral<LegendrePolynomial<parameters::numerical::y_steps>> &qint1d, const double &q_sq,
+    const Integrator1d &qint1d, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime) {
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
@@ -162,8 +164,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const jtens2_double temp4_d(k_steps, temp3_d);
 
   // Do some Legendre Magic
-  qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>> qint2d;
-  qIntegral<LegendrePolynomial<parameters::numerical::y_steps>> qint1d;
+  Integrator1d qint1d;
+  Integrator2d qint2d;
 
   // loop over q
   for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
