@@ -7,10 +7,15 @@
 template<unsigned o, typename _RF = double>
 class LegendrePolynomial : public PolynomialBase<LegendrePolynomial<o>,_RF>
 {
+  using PB = PolynomialBase<LegendrePolynomial<o>,_RF>;
   public:
     static constexpr unsigned order = o;
     using RF = _RF;
-    LegendrePolynomial() {}
+    LegendrePolynomial() 
+    {
+      PB::calcZeros();
+      PB::calcWeights();
+    }
 
   private:
     template<unsigned n>

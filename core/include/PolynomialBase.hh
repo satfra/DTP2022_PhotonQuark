@@ -67,8 +67,6 @@ class PolynomialBase
 
     PolynomialBase()
     {
-      calcZeros();
-      calcWeights();
     }
 
     const std::vector<RF>& zeroes() const
