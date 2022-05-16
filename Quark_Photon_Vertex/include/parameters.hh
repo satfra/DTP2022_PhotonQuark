@@ -46,5 +46,10 @@ namespace parameters {
         constexpr double lambda_qcd = 0.234;
         constexpr double lambda_0 = 1.0;
         constexpr double gamma_m = 0.48;
+
+        // Parameters for the quark dse
+        constexpr double m_c = 0.0037;
+        constexpr double mu = 19.0;
+        constexpr double quark_a0 = 1.0;
     }
 }
