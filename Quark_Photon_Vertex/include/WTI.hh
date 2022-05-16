@@ -6,46 +6,45 @@
 #include <cmath>
 #include <Utils.hh>
 
-double Sigma_A (double kminus2, double kplus2)
+template<typename Quark>
+double Sigma_A (double &kminus2, double &kplus2, const Quark &quark)
 
 {
 
-    double xplus = kplus2/pow(0.7,2);
-    double xminus=kminus2/pow(0.7,2);
-
-    return 0.5 * (quark_a_function_model(xplus)+quark_a_function_model(xminus));
+    
+    return 0.5 * (quark.A(kplus2)+quark.A(kminus2));
 }
 
-double Delta_A (double kminus2, double kplus2)
+template<typename Quark>
+double Delta_A (double &kminus2, double &kplus2, const Quark &quark)
 
 {
 
-    double xplus = kplus2/pow(0.7,2);
-    double xminus=kminus2/pow(0.7,2);
+    
 
-   return (quark_a_function_model(xplus)-quark_a_function_model(xminus))/(kplus2 - kminus2);
+   return (quark.A(kplus2)-quark.A(kminus2))/(kplus2 - kminus2);
 }
 
-double Delta_B (double kminus2, double kplus2)
+
+template<typename Quark>
+double Delta_B (double &kminus2, double &kplus2, const Quark &quark)
+
 
 {
 
-    double xplus = kplus2/pow(0.7,2);
-    double xminus=kminus2/pow(0.7,2);
-
-   return (quark_a_function_model(xplus)*quark_m_function_model(xplus) - quark_a_function_model(xminus)*quark_m_function_model(xminus))/(kplus2 - kminus2);
+   return (quark.A(kplus2)*quark.M(kplus2) - quark.A(kminus2)*quark.M(kminus2))/(kplus2 - kminus2);
 }
 
 //g1(const double Q, const double s, const double z,const double k, std::vector< std::complex<double> > a)
-
-void wti (const double Q, const double s, const double z, const double k,  std::complex<double> g1 ,std::complex<double> g2, std::complex<double> g3)
+template<typename Quark> 
+void wti (const double &Q, const double &s, const double &z, const double &k,  std::complex<double> &g1 ,std::complex<double> &g2, std::complex<double> &g3, const Quark &quark)
 {
     double kplus2 =  powr<2>(k) + powr<2>(Q)/4 + k*Q*z;
     double kminus2 =  powr<2>(k) + powr<2>(Q)/4 - k*Q*z;
 
-    std::complex<double> wti1= g1 - std::complex<double> (Sigma_A(kminus2,kplus2));
-    std::complex<double> wti2= g2 - std::complex<double>(Delta_A(kminus2,kplus2));
-    std::complex<double> wti3= g3 - std::complex<double> (Delta_B(kminus2,kplus2));
+    std::complex<double> wti1= g1 - std::complex<double> (Sigma_A<Quark>(kminus2,kplus2,quark));
+    std::complex<double> wti2= g2 - std::complex<double>(Delta_A<Quark>(kminus2,kplus2,quark));
+    std::complex<double> wti3= g3 - std::complex<double> (Delta_B<Quark>(kminus2,kplus2,quark));
 
    
      std::cout << "for parameters (Q,s,z,k) = " << "( " << Q << "," << s << "," << z << ", " << k << ")" << std::endl;
