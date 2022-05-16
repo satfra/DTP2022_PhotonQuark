@@ -88,7 +88,7 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
 #pragma omp parallel for collapse(2)
   for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
     for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
-      const double &k_sq = exp(k_grid[k_idx]);
+      const double k_sq = std::exp(k_grid[k_idx]);
       const double &z = z_grid[z_idx];
 
       // Evaluate Gij
@@ -117,7 +117,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
         continue;
 
       for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
-        const double &k_sq = exp(k_grid[k_idx]);
+        const double k_sq = std::exp(k_grid[k_idx]);
 
         for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
           const double &z = z_grid[z_idx];
@@ -150,7 +150,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
   }
 }
 
-void transform_a_to_gf(qtens_cmplx &a, 
+void transform_a_to_fg(qtens_cmplx &a, 
     const vec_double &q_grid, const vec_double &k_grid, const vec_double &z_grid) {
   using namespace parameters::numerical;
   using namespace basistransform;
@@ -163,7 +163,8 @@ void transform_a_to_gf(qtens_cmplx &a,
           a_copy[i] = a[q_iter][i][k_idx][z_idx];
 
         const double Q = std::sqrt(q_grid[q_iter]);
-        const double k = std::sqrt(k_grid[k_idx]);
+        const double k_sq = std::exp(k_grid[k_idx]);
+        const double k = std::sqrt(k_sq);
         const double& z = z_grid[z_idx];
         const double s = std::sqrt(1. - powr<2>(z));
 
@@ -251,10 +252,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   }
 
   // transform to g,f (almost in place!)
-  transform_a_to_gf(a, q_grid, k_grid, z_grid);
-  const auto& gf = a;
+  transform_a_to_fg(a, q_grid, k_grid, z_grid);
+  const auto& fg = a;
  
   // TODO check WTI
 
-  saveToFile(gf, "gf_file.dat", "#q_sq i k_sq z Re(gf) Im(gf)");
+  saveToFile_withGrids(fg, "fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)", 
+      q_grid, k_grid, z_grid);
 }
