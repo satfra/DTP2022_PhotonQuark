@@ -6,6 +6,7 @@
 #include <iteration.hh>
 #include <numeric>
 #include <parameters.hh>
+#include <quark_dse.hh>
 
 int main(int argc, char *argv[]) 
 {
@@ -28,6 +29,13 @@ int main(int argc, char *argv[])
   const std::vector<double> y_grid = lp_y.zeroes();
 
   iterate_a_and_b(q_grid, z_grid, k_grid, y_grid);
+
+  mat_double quark_a_and_b = quark_iterate_dressing_functions(1.0, 0.0037, 0.0037, 19);
+  vec_double quark_a = quark_a_and_b[0];
+  vec_double quark_b = quark_a_and_b[1];
+
+  saveToFile(quark_a, "quark_a.txt");
+  saveToFile(quark_b, "quark_b.txt");
 
   return 0;
 }
