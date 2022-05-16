@@ -20,6 +20,12 @@ namespace parameters {
         
         // integration factor, should be fixed
         constexpr double int_factors = 0.5 / powr<4>(2. * M_PI);
+
+        // Grid for the quark propagator dse
+        constexpr unsigned int quark_dse_steps_q = 600;
+        constexpr unsigned int quark_dse_steps_z = 128;
+        constexpr unsigned int quark_dse_max_steps = 100;
+        constexpr double quark_dse_acc = 1e-7;
     }
 
     namespace physical {
