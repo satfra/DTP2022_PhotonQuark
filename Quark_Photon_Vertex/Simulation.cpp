@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
   std::iota(k_grid.begin(), k_grid.end(), 0);
   std::iota(q_grid.begin(), q_grid.end(), 0);
 
-  std::cout << "L=" << parameters::physical::lambda_UV << " order_k=" << parameters::numerical::k_steps <<"\n";
+  std::cout << "Using cutoff \n  L=" << parameters::physical::lambda_UV << "\nAnd polynomial order in k\n  order_k=" << parameters::numerical::k_steps <<"\n";
   k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1), std::log(parameters::physical::lambda_IR),
                        std::log(parameters::physical::lambda_UV));
   q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1), 1e-3, 3.);
