@@ -12,13 +12,12 @@
 #include "parameters.hh"
 #include "omp.h"
 
-constexpr unsigned int n_structs = 12;
-constexpr double int_factors = 0.5 / powr<4>(2. * M_PI);
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
 using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
 
 double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned int q_iter,
     double current_acc, const std::vector<mat_cmplx> &a_old) {
+  using namespace parameters::numerical;
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
       const auto diff = a[q_iter][i][k_idx][z_0] - a_old[i][k_idx][z_0];
@@ -30,6 +29,7 @@ double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned in
 }
 
 void a_initialize(qtens_cmplx &a, unsigned int q_iter) {
+  using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
@@ -44,6 +44,7 @@ void a_initialize(qtens_cmplx &a, unsigned int q_iter) {
 void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &a,
     const Integrator2d& qint2d) {
+  using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
@@ -82,6 +83,7 @@ void a_iteration_step(const qtens_cmplx &b, unsigned int q_iter,
 
 void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid, qtens_cmplx &b) {
+  using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
     for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
@@ -106,6 +108,7 @@ void b_iteration_step(const qtens_cmplx &a, unsigned int q_iter, const double &q
 void precalculate_K_kernel(const vec_double &y_grid,
     const Integrator1d &qint1d, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime) {
+  using namespace parameters::numerical;
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned j = 0; j < n_structs; ++j) {
@@ -205,10 +208,15 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       }
       std::cout << "  current_step = " << current_step << "\n" << "  current_acc = " << current_acc << "\n";
       if (current_acc < target_acc) {
-        std::cout << "Converged!" << std::endl;
+        std::cout << "----> Converged!" << std::endl;
       }
     }
   }
+
+  // TODO transform to g,f (almost in place!)
+ 
+  // TODO check WTI
+
   saveToFile(a, "a_file.dat", "#q_sq i k_sq z");
   saveToFile(b, "b_file.dat", "#q_sq i k_sq z");
 }

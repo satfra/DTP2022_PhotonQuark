@@ -2,6 +2,8 @@
 
 namespace parameters {
     namespace numerical {
+        // number of tensor structures, is ALWAYS fixed to 12
+        constexpr unsigned int n_structs = 12;
         // The number of steps in the k/k' grid
         constexpr unsigned int k_steps = 32;
         // The number of steps in the z/z' grid
@@ -15,6 +17,9 @@ namespace parameters {
         constexpr double target_acc = 1e-3;
         // Maximum number of iteration steps
         constexpr unsigned max_steps = 30;
+        
+        // integration factor, should be fixed
+        constexpr double int_factors = 0.5 / powr<4>(2. * M_PI);
     }
 
     namespace physical {
