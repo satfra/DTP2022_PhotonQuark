@@ -65,17 +65,19 @@ class PolynomialBase
   public:
     static constexpr unsigned order = POL::order;
 
-    const std::vector<RF>& zeroes()
+    PolynomialBase()
     {
-      if(_z.size() == 0)
-        calcZeros();
+      calcZeros();
+      calcWeights();
+    }
+
+    const std::vector<RF>& zeroes() const
+    {
       return _z;
     }
 
-    const std::vector<RF>& weights()
+    const std::vector<RF>& weights() const
     {
-      if(_w.size() == 0)
-        calcWeights();
       return _w;
     }
 

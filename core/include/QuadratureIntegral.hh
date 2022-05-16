@@ -4,8 +4,6 @@
 #include <algorithm>
 #include <Utils.hh>
 
-
-
 template<typename POL, typename RF = typename POL::RF>
 class qIntegral
 {
@@ -15,12 +13,10 @@ class qIntegral
   public:
     qIntegral() 
     {
-      polynomials.zeroes();
-      polynomials.weights();
     }
 
     template<typename FUN>
-    auto operator()(FUN& fun, const RF& a, const RF& b)
+    auto operator()(FUN& fun, const RF& a, const RF& b) const
     {
       const auto& z = linearMapTo(polynomials.zeroes(), RF(-1.), RF(1.), a, b);
       const auto& w = polynomials.weights();
@@ -43,14 +39,10 @@ class qIntegral2d
   public:
     qIntegral2d() 
     {
-      polynomials_1.zeroes();
-      polynomials_1.weights();
-      polynomials_2.zeroes();
-      polynomials_2.weights();
     }
 
     template<typename FUN>
-    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2)
+    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2) const
     {
       const auto& z1 = linearMapTo(polynomials_1.zeroes(), RF(-1.), RF(1.), a1, b1);
       const auto& w1 = polynomials_1.weights();
@@ -61,17 +53,7 @@ class qIntegral2d
       const RF dx2 = (b2-a2)/2.;
 
       decltype(fun(a1,a2)) result = 0.;
-      std::vector<decltype(fun(a1,a2))> res(POL1::order);
-      /*
-      auto inner_for_loop = [&](size_t j) {
-        for(unsigned i = 0; i < POL2::order; ++i)
-          res[j] += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
-      };
-      tbb::parallel_for(unsigned(0), POL1::order, inner_for_loop);
 
-      for(unsigned j = 0; j < POL1::order; ++j)
-        result += res[j];
-      */
       for(unsigned j = 0; j < POL1::order; ++j)
         for(unsigned i = 0; i < POL2::order; ++i)
           result += dx1 * w1[j] * ( dx2 * w2[i] * fun(z1[j], z2[i]));
@@ -92,7 +74,7 @@ class qIntegral3d
     qIntegral3d() {}
 
     template<typename FUN>
-    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2, const RF& a3, const RF& b3)
+    auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2, const RF& a3, const RF& b3) const
     {
       const auto& z1 = linearMapTo(polynomials_1.zeroes(), RF(-1.), RF(1.), a1, b1);
       const auto& w1 = polynomials_1.weights();

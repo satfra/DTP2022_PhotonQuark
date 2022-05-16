@@ -27,7 +27,7 @@ double update_accuracy(const unsigned int z_0, const qtens_cmplx &a, unsigned in
   return current_acc;
 }
 
-void a_initialize(const qtens_cmplx &a, unsigned int q_iter) {
+void a_initialize(qtens_cmplx &a, unsigned int q_iter) {
 #pragma omp parallel for collapse(2)
   for (unsigned i = 0; i < n_structs; ++i) {
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
