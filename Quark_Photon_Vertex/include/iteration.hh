@@ -237,6 +237,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
   {
     const double &q_sq = q_grid[q_iter];
+    std::cout << "\n============================\n"
+      << "Calculation for q^2 = " << q_sq << "\n";
     double current_acc = 1.0;
     unsigned current_step = 0;
 
@@ -244,42 +246,48 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     // Precalculate the K kernel
     precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid, K_prime, quark);
-    std::cout << "Calculated K'_ij...\n";
+    std::cout << " Calculated K'_ij...\n";
 
     // Initialize a with bare vertex
     a_initialize(a, q_iter, quark);
 
-    std::cout << "Starting iteration...\n";
+    std::cout << "  Starting iteration...\n";
     while (max_steps > current_step && current_acc > target_acc)
     {
-      std::cout << "\nStarted a step...\n";
+      std::cout << "\n    Started a step...\n";
 
       // consider NOT copying... RAM lol
       const auto a_old = copy_a_old(a, q_iter, z_0);
 
       b_iteration_step(a, q_iter, q_sq, z_grid, k_grid, b, quark);
 
-      std::cout << "  Calculated b_i...\n";
+      std::cout << "    Calculated b_i...\n";
 
       a_iteration_step(b, q_iter, K_prime, z_grid, k_grid, a, qint2d, quark);
 
-      std::cout << "  Calculated a_i...\n";
+      std::cout << "    Calculated a_i...\n";
 
       current_acc = 0.;
       current_acc = update_accuracy(z_0, a, q_iter, current_acc, a_old);
 
       ++current_step;
       if (current_step == max_steps)
-        std::cout << "Maximum iterations reached!" << std::endl;
-      std::cout << "  current_step = " << current_step << "\n" << "  current_acc = " << current_acc << "\n";
+        std::cout << "  Maximum iterations reached!" << std::endl;
+      std::cout << "    current_step = " << current_step << "\n" << "    current_acc = " << current_acc << "\n";
       if (current_acc < target_acc)
-        std::cout << "----> Converged!" << std::endl;
+        std::cout << "  ----> Converged!" << std::endl;
     }
   }
+
+  std::cout << "\n============================\n"
+    << "\nTransforming a to f and g...\n";
 
   // transform to g,f (almost in place!)
   transform_a_to_fg(a, q_grid, k_grid, z_grid);
   const auto& fg = a;
+
+  std::cout << "\n============================\n"
+    << "\nCalculating the WTIs...\n";
 
   // check WTI
   const tens_cmplx temp2_w(3, temp1);
@@ -304,6 +312,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     }
   }
 
+  std::cout << "\n============================\n"
+    << "\nSaving files...\n";
 
   saveToFile_withGrids<n_structs>(fg, "fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)", 
       q_grid, k_grid, z_grid);
@@ -311,4 +321,5 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   saveToFile_withGrids<3>(w, "w_file.dat", "#q_sq i k_sq z Re(w) Im(w)", 
       q_grid, k_grid, z_grid);
 
+  std::cout << "\nProgram finished.";
 }
