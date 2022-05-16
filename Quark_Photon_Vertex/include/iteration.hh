@@ -10,6 +10,7 @@
 #include "momentumtransform.hh"
 #include "fileIO.hh"
 #include "parameters.hh"
+#include "basistransform.hh"
 #include "omp.h"
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
@@ -149,6 +150,41 @@ void precalculate_K_kernel(const vec_double &y_grid,
   }
 }
 
+void transform_a_to_gf(qtens_cmplx &a, 
+    const vec_double &q_grid, const vec_double &k_grid, const vec_double &z_grid) {
+  using namespace parameters::numerical;
+  using namespace basistransform;
+
+  for (unsigned int q_iter = 0; q_iter < q_steps; q_iter++) {
+    for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx) {
+      for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx) {
+        vec_cmplx a_copy(n_structs);
+        for(unsigned i = 0; i < n_structs; ++i)
+          a_copy[i] = a[q_iter][i][k_idx][z_idx];
+
+        const double Q = std::sqrt(q_grid[q_iter]);
+        const double k = std::sqrt(k_grid[k_idx]);
+        const double& z = z_grid[z_idx];
+        const double s = std::sqrt(1. - powr<2>(z));
+
+        a[q_iter][0][k_idx][z_idx] = f1(Q, s, z, k, a_copy);
+        a[q_iter][1][k_idx][z_idx] = f2(Q, s, z, k, a_copy);
+        a[q_iter][2][k_idx][z_idx] = f3(Q, s, z, k, a_copy);
+        a[q_iter][3][k_idx][z_idx] = f4(Q, s, z, k, a_copy);
+        a[q_iter][4][k_idx][z_idx] = f5(Q, s, z, k, a_copy);
+        a[q_iter][5][k_idx][z_idx] = f6(Q, s, z, k, a_copy);
+        a[q_iter][6][k_idx][z_idx] = f7(Q, s, z, k, a_copy);
+        a[q_iter][7][k_idx][z_idx] = f8(Q, s, z, k, a_copy);
+
+        a[q_iter][8][k_idx][z_idx] = g1(Q, s, z, k, a_copy);
+        a[q_iter][9][k_idx][z_idx] = g2(Q, s, z, k, a_copy);
+        a[q_iter][10][k_idx][z_idx] = g3(Q, s, z, k, a_copy);
+        a[q_iter][11][k_idx][z_idx] = g4(Q, s, z, k, a_copy);
+      }
+    }
+  }
+}
+
 void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid)
 {
   using namespace parameters::numerical;
@@ -214,10 +250,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     }
   }
 
-  // TODO transform to g,f (almost in place!)
+  // transform to g,f (almost in place!)
+  transform_a_to_gf(a, q_grid, k_grid, z_grid);
+  const auto& gf = a;
  
   // TODO check WTI
 
-  saveToFile(a, "a_file.dat", "#q_sq i k_sq z");
-  saveToFile(b, "b_file.dat", "#q_sq i k_sq z");
+  saveToFile(gf, "gf_file.dat", "#q_sq i k_sq z Re(gf) Im(gf)");
 }
