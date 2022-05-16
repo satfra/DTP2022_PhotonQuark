@@ -1,0 +1,129 @@
+\documentclass[pt12]{beamer}
+%\documentclass[pt12,externalviewer]{beamer}
+
+\usepackage{verbatim}
+\usepackage{amssymb}
+\usepackage{graphicx}
+%\usepackage{rotating}
+%\usepackage{amsmath}
+%\usepackage{tikz}
+%\usepackage{beamergraphics}
+\usepackage[italian]{babel}
+%\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\newcommand{\av}[1]{\langle #1 \rangle}
+\newcommand{\mel}[3]{\langle#1|#2|#3\rangle}
+\newcommand{\ket}[1]{|#1\rangle}
+\newcommand{\scal}[2]{\langle #1|#2\rangle}
+\newcommand{\ord}[1]{^{(#1)}}
+\newcommand{\bra}[1]{\langle #1|}
+\newcommand{\limit}[2]{\lim_{#1 \to #2}}
+
+%\usepackage[absolute,overlay]{textpos}
+%\usepackage{pdfcolparallel}
+
+%\usepackage{tcolorbox}
+%\tcbuselibrary{fitting}
+
+\definecolor{CTgreen}{HTML}{28794e} % Catania green (primary)
+\definecolor{UBCblue}{rgb}{0.02706, 0.04725, 0.526667} % UBC Blue (primary)
+%\definecolor{UBCblue}{rgb}{0.01706, 0.03725, 0.426667} % UBC Blue (primary)
+\mode<presentation>
+{
+  \usetheme{Warsaw} 
+%  \usetheme{Madrid}
+%  \usetheme{Montpellier}
+%  \usetheme{Marburg} 
+  \usecolortheme[named=UBCblue]{structure}
+  \setbeamercolor{alerted text}{fg=blue}
+  \setbeamercovered{transparent}
+  \setbeamertemplate{section in toc}[ball unnumbered]
+}
+
+%\setbeamertemplate{footline}{\hfill\insertframenumber/\inserttotalframenumber} 
+
+\expandafter\def\expandafter\insertshorttitle\expandafter{%
+  \insertshorttitle\hfill%
+  \insertframenumber\,/\,\inserttotalframenumber}
+
+\newcommand{\backupbegin}{
+   \newcounter{framenumberappendix}
+   \setcounter{framenumberappendix}{\value{framenumber}}
+}
+\newcommand{\backupend}{
+   \addtocounter{framenumberappendix}{-\value{framenumber}}
+   \addtocounter{framenumber}{\value{framenumberappendix}} 
+}
+
+\newcommand{\refer}[1]{%
+   \begin{flushright}
+      {\alert{\tiny #1}}
+   \end{flushright}}
+  
+\newcommand{\lrefer}[1]{%
+   \begin{flushleft}
+      {\alert{\tiny #1}}
+   \end{flushleft}}
+  
+\newcommand{\param}[1]{%
+   \begin{flushright}
+      {\small #1}
+   \end{flushright}
+   \vspace{-1.5\baselineskip}
+}
+
+\newcommand{\sech}{\mathop{\rm sech}\nolimits}
+\newcommand{\sgn}{\mathop{\rm sgn}\nolimits}
+\newcommand{\etal}{{\em et al.}}
+
+
+\title[Pulsars: properties and glitches]{Quark-Photon Vertex}
+
+\author[Fabrizio Murgana]{\large{S. Hagel, L. Kiefer, F. Murgana, F.R. Sattler, J. Wessely}}
+
+
+
+\date{18-05-2022}
+
+\begin{document}
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+
+
+\begin{frame}[label=outline]
+\frametitle{Outline}
+\tableofcontents[pausesections]
+\end{frame}
+
+\section{Motivation}
+\include{slide1}
+
+\section{Quark-Photon Vertex}
+
+\include{slide2}
+
+\section{Bethe-Salpeter equation (BSE)}
+\include{slide3}
+\section{Pulsar Glitches and Superfluidity}
+
+%\include{slide4}
+
+\section{Starquakes}
+%\include{slide5}
+
+%\include{conclusions}
+
+%\appendix
+%\backupbegin
+
+%\section*{Parte ausiliaria}
+%\include{slideaux1}
+
+
+
+
+\end{document}
+
