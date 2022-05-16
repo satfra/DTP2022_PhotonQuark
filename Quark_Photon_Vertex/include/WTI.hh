@@ -49,7 +49,7 @@ void wti (const double Q, const double s, const double z, const double k,  std::
    
      std::cout << "deviation of WTI given by:" << std::endl;
      std::cout << "devg1 = " << wti1 << std::endl;
-    std:: cout << "devg2= " << wti2  << std::endl;
+     std:: cout << "devg2= " << wti2  << std::endl;
      std:: cout << "devg3= " << wti3 << std::endl;
 }
 
