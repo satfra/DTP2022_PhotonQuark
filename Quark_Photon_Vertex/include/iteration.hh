@@ -30,7 +30,7 @@ double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx 
     {
       std::complex<double> current_a = 0.;
       for (unsigned z_idx = 0; z_idx < a[i][k_idx].size(); ++z_idx)
-        current_a += a[i][k_idx][z_idx] / double(a[i][k_idx].size());
+        current_a += std::abs(a[i][k_idx][z_idx]) / double(a[i][k_idx].size());
       const auto diff = current_a - a_old[i][k_idx];
       const auto sum = current_a + a_old[i][k_idx];
       if(!isEqual(std::abs(sum), 0.))
@@ -47,7 +47,7 @@ mat_cmplx average_array_full(const tens_cmplx &a, const unsigned z_0)
   for (unsigned i = 0; i < a.size(); ++i)
     for (unsigned k_idx = 0; k_idx < a[i].size(); ++k_idx)
       for (unsigned z_idx = 0; z_idx < a[i][k_idx].size(); ++z_idx)
-        a_z0[i][k_idx] += a[i][k_idx][z_idx] / double(a[i][k_idx].size());
+        a_z0[i][k_idx] += std::abs(a[i][k_idx][z_idx]) / double(a[i][k_idx].size());
   return a_z0;
 }
 
