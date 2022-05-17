@@ -252,10 +252,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   const Quark quark;
 
   // prepare output files
-  emptyIdxFile<12>("fg_file.dat", "#q_sq i k_sq z Re(fg) Im(fg)");
-  emptyIdxFile<12>("fg_z0_file.dat", "#q_sq i k_sq Re(fg) Im(fg)");
-  emptyIdxFile<3>("w_file.dat", "#q_sq i k_sq z Re(w) Im(w)");
-  emptyIdxFile<3>("w_z0_file.dat", "#q_sq i k_sq Re(w) Im(w)");
+  emptyIdxFile<12>("fg_file", "#q_sq i k_sq z Re(fg) Im(fg)");
+  emptyIdxFile<12>("fg_z0_file", "#q_sq i k_sq Re(fg) Im(fg)");
+  emptyIdxFile<3>("w_file", "#q_sq i k_sq z Re(w) Im(w)");
+  emptyIdxFile<3>("w_z0_file", "#q_sq i k_sq Re(w) Im(w)");
 
   // loop over q
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
