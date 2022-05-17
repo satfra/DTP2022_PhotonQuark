@@ -48,13 +48,33 @@
     };
   \end{tikzpicture}
 \end{frame}
-\begin{frame}\frametitle{How did we do it?}
-  \setbeamercovered{invisible}
-  Collective Bughunt:
-  We found bugs in
-  \begin{itemize}
-    \item d
-  \end{itemize}
 
+\begin{frame}\frametitle{Bugs}
+  \setbeamercovered{invisible}
+  {\Large Collective Bughunt:}
+
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=south west,inner sep=0pt] at ($(current page.south west)+(7.2cm,5.0cm)$) {
+      \includegraphics[width=0.3\linewidth]{frog.png}
+    };
+  \end{tikzpicture}
+
+  {\small
+    \vspace{3mm}
+    We found bugs in Normalization $\rightarrow$ factor $(2\pi)^4 \approx 10^3$
+
+    \pause
+    \vspace{3mm}
+    Forgot Jacobi determinant
+
+    \pause
+    \vspace{3mm}
+    Mismatched some indices
+  }
+\end{frame}
+
+\begin{frame}\frametitle{Stupid numerics}
+  \setbeamercovered{invisible}
+  Still no convergence, everything goes to $\infty$
 \end{frame}
 \endinput
