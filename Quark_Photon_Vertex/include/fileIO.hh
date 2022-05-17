@@ -26,14 +26,25 @@ void emptyFile(const std::string& file, const std::string& header)
 }
 
 template<unsigned N>
+void emptyIdxFile(const std::string& file, const std::string& header)
+{
+  for(unsigned i = 0; i < N; ++i)
+  {
+    std::ofstream fileStream;
+    fileStream.open(file + "_idx_" + std::to_string(i) + ".dat", std::ofstream::out | std::ofstream::trunc);
+    fileStream << header << "\n";
+    fileStream.close();
+  }
+}
+
+template<unsigned N>
 void saveToFile_withGrids(const tens_cmplx& data, const std::string& file,
     const double& q_sq, const vec_double &k_grid, const vec_double &z_grid)
 {
-  std::ofstream fileStream;
-  fileStream.open(file, std::ios_base::app);
-
   for(unsigned i = 0; i < N; ++i)
   {
+    std::ofstream fileStream;
+    fileStream.open(file + "_idx_" + std::to_string(i) + ".dat", std::ios_base::app);
     for (unsigned k_idx = 0; k_idx < k_grid.size(); ++k_idx)
     {
       const double k_sq = std::exp(k_grid[k_idx]);
@@ -44,24 +55,24 @@ void saveToFile_withGrids(const tens_cmplx& data, const std::string& file,
       }
     }
     fileStream << "\n";
+    fileStream.close();
   }
-  fileStream.close();
 }
 
 template<unsigned N>
 void saveToFile_withGrids(const mat_cmplx& data, const std::string& file,
     const double& q_sq, const vec_double &k_grid)
 {
-  std::ofstream fileStream;
-  fileStream.open(file, std::ios_base::app);
-
   for(unsigned i = 0; i < N; ++i)
   {
+    std::ofstream fileStream;
+    fileStream.open(file + "_idx_" + std::to_string(i) + ".dat", std::ios_base::app);
     for (unsigned k_idx = 0; k_idx < k_grid.size(); ++k_idx)
     {
       const double k_sq = std::exp(k_grid[k_idx]);
       fileStream << q_sq << " " << i << " " << k_sq << " " << data[i][k_idx].real() << " " << data[i][k_idx].imag() << "\n";
     }
+    fileStream << "\n";
+    fileStream.close();
   }
-  fileStream.close();
 }
