@@ -11,10 +11,6 @@ class qIntegral
     POL polynomials;
 
   public:
-    qIntegral() 
-    {
-    }
-
     template<typename FUN>
     auto operator()(FUN& fun, const RF& a, const RF& b) const
     {
@@ -37,10 +33,6 @@ class qIntegral2d
     POL2 polynomials_2;
 
   public:
-    qIntegral2d() 
-    {
-    }
-
     template<typename FUN>
     auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2) const
     {
@@ -71,8 +63,6 @@ class qIntegral3d
     POL3 polynomials_3;
 
   public:
-    qIntegral3d() {}
-
     template<typename FUN>
     auto operator()(FUN& fun, const RF& a1, const RF& b1, const RF& a2, const RF& b2, const RF& a3, const RF& b3) const
     {
@@ -88,19 +78,12 @@ class qIntegral3d
       const auto& w3 = polynomials_3.weights();
       const RF dx3 = (b3-a3)/2.;
 
+      decltype(fun(a1,a2,a3)) result = 0.;
 
-      std::vector<decltype(fun(a1,a2,a3))> res(POL1::order);
-      auto inner_for_loop = [&](size_t j) {
+      for(unsigned j = 0; j < POL1::order; ++j)
         for(unsigned i = 0; i < POL2::order; ++i)
           for(unsigned k = 0; k < POL3::order; ++k)
-            res[j] += dx1 * w1[j] * (dx2 * w2[i] * ( dx3 * w3[k] * fun(z1[j], z2[i], z3[k])));
-      };
-
-      for(unsigned j = 0; j < POL1::order; j++)
-        inner_for_loop(j);
-      decltype(fun(a1,a2,a3)) result = 0.;
-      for(unsigned j = 0; j < POL1::order; ++j)
-        result += res[j];
+            result += dx1 * w1[j] * (dx2 * w2[i] * ( dx3 * w3[k] * fun(z1[j], z2[i], z3[k])));
 
       return result;
     }

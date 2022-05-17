@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cmath>
-#include "parameters.hh"
-#include "quark_dse.hh"
+
 #include "Utils.hh"
+#include "types.hh"
+#include "parameters.hh"
 #include "LinearInterpolate.hh"
+
+#include "quark_dse.hh"
 
 class quark_model
 {
