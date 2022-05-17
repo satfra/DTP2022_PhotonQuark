@@ -28,13 +28,27 @@ double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx 
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
     {
-      const auto current_a = 0.5 * (a[i][k_idx][z_0-1] + a[i][k_idx][z_0]);
+      std::complex<double> current_a = 0.;
+      for (unsigned z_idx = 0; z_idx < a[i][k_idx].size(); ++z_idx)
+        current_a += std::abs(a[i][k_idx][z_idx]) / double(a[i][k_idx].size());
       const auto diff = current_a - a_old[i][k_idx];
       const auto sum = current_a + a_old[i][k_idx];
       if(!isEqual(std::abs(sum), 0.))
         current_acc = std::max(current_acc, abs(diff) / std::abs(sum));
     }
   return current_acc;
+}
+
+mat_cmplx average_array_full(const tens_cmplx &a, const unsigned z_0)
+{
+  using namespace parameters::numerical;
+  mat_cmplx a_z0(a.size(), vec_cmplx(a[0].size(), 0.0));
+
+  for (unsigned i = 0; i < a.size(); ++i)
+    for (unsigned k_idx = 0; k_idx < a[i].size(); ++k_idx)
+      for (unsigned z_idx = 0; z_idx < a[i][k_idx].size(); ++z_idx)
+        a_z0[i][k_idx] += std::abs(a[i][k_idx][z_idx]) / double(a[i][k_idx].size());
+  return a_z0;
 }
 
 mat_cmplx average_array_z0(const tens_cmplx &a, const unsigned z_0)
@@ -253,8 +267,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       << "Calculation for q^2 = " << q_sq << "\n";
 
     // define new a, b
-    tens_cmplx a(q_steps, temp1);
-    tens_cmplx b(q_steps, temp1);
+    tens_cmplx a(n_structs, temp1);
+    tens_cmplx b(n_structs, temp1);
 
     // Precalculate the K kernel
     std::cout << " Calculating K'_ij..." << std::flush;
@@ -273,7 +287,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       debug_out("\n    Started a step...\n", debug);
       
       // copy for checking the convergence
-      const auto a_old = average_array_z0(a, z_0);
+      const auto a_old = average_array_full(a, z_0);
 
       debug_out("    Calculating b_i...", debug);
       b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);

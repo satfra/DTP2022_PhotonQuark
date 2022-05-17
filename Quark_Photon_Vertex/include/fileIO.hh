@@ -43,6 +43,7 @@ void saveToFile_withGrids(const tens_cmplx& data, const std::string& file,
         fileStream << q_sq << " " << i << " " << k_sq << " " << z << " " << data[i][k_idx][z_idx].real() << " " << data[i][k_idx][z_idx].imag() << "\n";
       }
     }
+    fileStream << "\n";
   }
   fileStream.close();
 }
