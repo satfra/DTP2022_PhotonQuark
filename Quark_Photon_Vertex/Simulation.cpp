@@ -33,14 +33,14 @@ int main(int argc, char *argv[])
 
   // create the q_grid, fill it and transform it to the correct range
   std::vector<double> q_grid(parameters::numerical::q_steps);
+
   std::vector<double> q_gridtemp(parameters::numerical::q_steps);
-  std::iota(q_grid.begin(), q_grid.end(), 0);
+  std::iota(q_gridtemp.begin(), q_gridtemp.end(), 0);
 
   q_gridtemp = linearMapTo(q_gridtemp, 0., double(q_grid.size()-1), std::log(parameters::numerical::min_q_sq),
                                 std::log(parameters::numerical::max_q_sq));
-  for (unsigned int i = 0; i < q_grid.size(); ++i) {
+  for (unsigned int i = 0; i < q_grid.size(); ++i)
     q_grid[i] = std::exp(q_gridtemp[i]);
-  }
 
   // We use the zeroes of LegendrePolynomials for the z and y grids
   LegendrePolynomial<parameters::numerical::z_steps> lp_z;

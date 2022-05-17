@@ -253,8 +253,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       << "Calculation for q^2 = " << q_sq << "\n";
 
     // define new a, b
-    tens_cmplx a(q_steps, temp1);
-    tens_cmplx b(q_steps, temp1);
+    tens_cmplx a(n_structs, temp1);
+    tens_cmplx b(n_structs, temp1);
 
     // Precalculate the K kernel
     std::cout << " Calculating K'_ij..." << std::flush;
