@@ -1,11 +1,11 @@
 \documentclass[pt12]{beamer}
 %\documentclass[pt12,externalviewer]{beamer}
 
+\usepackage{tikz}
+\usetikzlibrary{calc}
 \usepackage{verbatim}
 \usepackage{amssymb}
 \usepackage{graphicx}
-\usepackage{tikz}
-\usetikzlibrary{calc}
 %\usepackage{rotating}
 %\usepackage{amsmath}
 %\usepackage{tikz}
@@ -32,17 +32,17 @@
 %\definecolor{UBCblue}{rgb}{0.01706, 0.03725, 0.426667} % UBC Blue (primary)
 \mode<presentation>
 {
-  \usetheme{Warsaw}
+  \usetheme{Warsaw} 
 %  \usetheme{Madrid}
 %  \usetheme{Montpellier}
-%  \usetheme{Marburg}
+%  \usetheme{Marburg} 
   \usecolortheme[named=UBCblue]{structure}
   \setbeamercolor{alerted text}{fg=blue}
   \setbeamercovered{transparent}
   \setbeamertemplate{section in toc}[ball unnumbered]
 }
 
-%\setbeamertemplate{footline}{\hfill\insertframenumber/\inserttotalframenumber}
+%\setbeamertemplate{footline}{\hfill\insertframenumber/\inserttotalframenumber} 
 
 \expandafter\def\expandafter\insertshorttitle\expandafter{%
   \insertshorttitle\hfill%
@@ -54,19 +54,19 @@
 }
 \newcommand{\backupend}{
    \addtocounter{framenumberappendix}{-\value{framenumber}}
-   \addtocounter{framenumber}{\value{framenumberappendix}}
+   \addtocounter{framenumber}{\value{framenumberappendix}} 
 }
 
 \newcommand{\refer}[1]{%
    \begin{flushright}
       {\alert{\tiny #1}}
    \end{flushright}}
-
+  
 \newcommand{\lrefer}[1]{%
    \begin{flushleft}
       {\alert{\tiny #1}}
    \end{flushleft}}
-
+  
 \newcommand{\param}[1]{%
    \begin{flushright}
       {\small #1}
@@ -79,13 +79,15 @@
 \newcommand{\etal}{{\em et al.}}
 
 
-\title{The Quark-Photon Vertex BSE}
+\title[Pulsars: properties and glitches]{Quark-Photon Vertex}
+
 
 \author{S. Hagel, L. Kiefer, F. Murgana, F.R. Sattler, J. Wessely}
 
 
 
-\date{18. May 2022}
+
+\date{18-05-2022}
 
 \begin{document}
 
@@ -93,14 +95,7 @@
 \titlepage
 \end{frame}
 
-%BEAUTIFUL PIZZA RIO
-\defbeamertemplate{itemize item}{image}{\small\includegraphics[height=1.7ex]{pizzario.png}}
-\defbeamertemplate{itemize subitem}{image}{\scriptsize\includegraphics[height=1.7ex]{pizzario.png}}
-\defbeamertemplate{itemize subsubitem}{image}{\tiny\includegraphics[height=1.7ex]{pizzario.png}}
 
-\setbeamertemplate{itemize item}[image]
-\setbeamertemplate{itemize subitem}[image]
-\setbeamertemplate{itemize subsubitem}[image]
 
 \begin{frame}[label=outline]
 \frametitle{Outline}
@@ -110,19 +105,21 @@
 \section{Motivation}
 \include{slide1}
 
-\section{The Quark-Photon Vertex BSE}
+\section{Quark-Photon Vertex}
 
 \include{slide2}
 
 \section{Bethe-Salpeter equation (BSE)}
 \include{slide3}
-\section{Solving the BSE}
 
-\include{slide4}
-
-
-\section{Project management}
+\include{slide4_5}
+\include{slide5}
 \include{slide6}
+\section{Pulsar Glitches and Superfluidity}
+
+%\include{slide4}
+
+\section{Starquakes}
 %\include{slide5}
 
 %\include{conclusions}
