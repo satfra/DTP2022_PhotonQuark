@@ -38,8 +38,8 @@
   \end{tikzpicture}
   \pause
   \begin{tikzpicture}[remember picture,overlay]
-    \node[anchor=south west,inner sep=0pt] at ($(current page.south west)+(8.2cm,5.55cm)$) {
-      \includegraphics[width=0.17\linewidth]{Important.jpeg}
+    \node[anchor=south west,inner sep=0pt] at ($(current page.south west)+(8.2cm,6.cm)$) {
+      \includegraphics[width=0.18\linewidth]{Important.jpeg}
     };
   \end{tikzpicture}
   \begin{tikzpicture}[remember picture,overlay]
@@ -53,13 +53,15 @@
   \setbeamercovered{invisible}
   {\Large Collective Bughunt:}
 
-  \begin{tikzpicture}[remember picture,overlay]
-    \node[anchor=south west,inner sep=0pt] at ($(current page.south west)+(7.2cm,5.0cm)$) {
-      \includegraphics[width=0.3\linewidth]{frog.png}
-    };
-  \end{tikzpicture}
 
   {\small
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=south west,inner sep=0pt] at ($(current page.south west)+(7.2cm,5.0cm)$) {
+        \includegraphics[width=0.3\linewidth]{frog.png}
+      };
+    \end{tikzpicture}
+
+    \pause
     \vspace{3mm}
     We found bugs in Normalization $\rightarrow$ factor $(2\pi)^4 \approx 10^3$
 
@@ -75,6 +77,98 @@
 
 \begin{frame}\frametitle{Stupid numerics}
   \setbeamercovered{invisible}
-  Still no convergence, everything goes to $\infty$
+  \begin{columns}
+    \centering
+    \begin{column}{0.4\linewidth}
+      \begin{block}{}
+        \vspace{-0.cm}
+        But still no convergence, everything goes to $\infty$...
+      \end{block}
+    \end{column}
+    \pause
+    \begin{column}{0.2\linewidth}
+      \centering
+      \tiny
+      Some parameter testing...\\
+      $\rightarrow$
+    \end{column}
+    \pause
+    \begin{column}{0.4\linewidth}
+      \begin{block}{Numerics issue}
+        \vspace{-0.cm}
+          Oversampled UV tail
+      \end{block}
+    \end{column}
+  \end{columns}
+  \pause
+  \vspace{1cm}
+  \centering
+  $\Rightarrow$ Logarithmic grid for $k^2$
+\end{frame}
+
+\begin{frame}\frametitle{Program overview}
+  \tiny
+      \begin{figure}
+        \begin{forest}
+          for tree={
+            align=center,
+            font=\sffamily,
+            edge+={thin, -{[]}},
+            l sep'+=10pt,
+            fork sep'=10pt,
+          },
+          forked edges,
+          if level=0{
+            inner xsep=0pt,
+            tikz={\draw [thick] (.children first) -- (.children last);}
+          }{},
+          [Quark\_Photon\_Vertex
+            [Simulation.cpp
+              [iteration.hh
+                [
+                [quark\_dse.hh]
+                [Kernels\_G.hh]
+                [Kernels\_K.hh]
+                [maris\_tandy.hh]
+                ]
+                [
+                [
+                [quark\_model\_functions.hh]
+                [basistransform.hh]
+                [momentumtransform.hh]
+                ]
+                ]
+              ]
+              [parameters.hh]
+              [types.hh]
+              [fileIO.hh]
+            ]
+          ]
+        \end{forest}
+      \end{figure}
+      \begin{figure}
+        \begin{forest}
+          for tree={
+            align=center,
+            font=\sffamily,
+            edge+={thin, -{[]}},
+            l sep'+=10pt,
+            fork sep'=10pt,
+          },
+          forked edges,
+          if level=0{
+            inner xsep=0pt,
+            tikz={\draw [thick] (.children first) -- (.children last);}
+          }{},
+          [core
+            [PolynomialBase.hh
+              [LegendrePolynomials.hh]
+            ]
+            [LinearInterpolate.hh]
+            [QuadratureIntegral.hh]
+            [Utils.hh]
+          ]
+        \end{forest}
+      \end{figure}
 \end{frame}
 \endinput

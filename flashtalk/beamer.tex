@@ -6,11 +6,13 @@
 \usepackage{verbatim}
 \usepackage{amssymb}
 \usepackage{graphicx}
+\usepackage[edges]{forest}
 %\usepackage{rotating}
 %\usepackage{amsmath}
 %\usepackage{tikz}
 %\usepackage{beamergraphics}
 \usepackage[]{babel}
+\usetikzlibrary{arrows.meta}
 %\usepackage[latin1]{inputenc}
 \usepackage[T1]{fontenc}
 \newcommand{\av}[1]{\langle #1 \rangle}
@@ -20,6 +22,9 @@
 \newcommand{\ord}[1]{^{(#1)}}
 \newcommand{\bra}[1]{\langle #1|}
 \newcommand{\limit}[2]{\lim_{#1 \to #2}}
+% Fonts
+\usepackage{newtxtext}
+\usepackage{newtxmath}
 
 %\usepackage[absolute,overlay]{textpos}
 %\usepackage{pdfcolparallel}
@@ -32,17 +37,21 @@
 %\definecolor{UBCblue}{rgb}{0.01706, 0.03725, 0.426667} % UBC Blue (primary)
 \mode<presentation>
 {
-  \usetheme{Warsaw} 
+%  \usetheme{Warsaw}
+  \usetheme{Singapore}
 %  \usetheme{Madrid}
 %  \usetheme{Montpellier}
-%  \usetheme{Marburg} 
+%  \usetheme{Marburg}
   \usecolortheme[named=UBCblue]{structure}
   \setbeamercolor{alerted text}{fg=blue}
   \setbeamercovered{transparent}
   \setbeamertemplate{section in toc}[ball unnumbered]
+  \setbeamertemplate{blocks}[rounded][shadow=true]
+  \setbeamercolor{block title}{bg=blue!30,fg=black}
+  \setbeamercolor{block body}{bg=lightgray!30,fg=black}
 }
 
-%\setbeamertemplate{footline}{\hfill\insertframenumber/\inserttotalframenumber} 
+%\setbeamertemplate{footline}{\hfill\insertframenumber/\inserttotalframenumber}
 
 \expandafter\def\expandafter\insertshorttitle\expandafter{%
   \insertshorttitle\hfill%
@@ -54,19 +63,19 @@
 }
 \newcommand{\backupend}{
    \addtocounter{framenumberappendix}{-\value{framenumber}}
-   \addtocounter{framenumber}{\value{framenumberappendix}} 
+   \addtocounter{framenumber}{\value{framenumberappendix}}
 }
 
 \newcommand{\refer}[1]{%
    \begin{flushright}
       {\alert{\tiny #1}}
    \end{flushright}}
-  
+
 \newcommand{\lrefer}[1]{%
    \begin{flushleft}
       {\alert{\tiny #1}}
    \end{flushleft}}
-  
+
 \newcommand{\param}[1]{%
    \begin{flushright}
       {\small #1}
