@@ -1,0 +1,16 @@
+set term svg
+set output "output1.svg"
+
+set logscale x
+set logscale y
+
+set format y '10^{%T}'
+set format x '10^{%T}'
+
+set ylabel "Q^2 [GeV^2]"
+set xlabel "k^2 [GeV^2]"
+set zlabel "Add cool label here"
+
+set title "Add cool title here"
+
+splot "w0.dat" u 3:1:4 palette w l t""
