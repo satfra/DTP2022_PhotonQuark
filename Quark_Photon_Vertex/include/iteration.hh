@@ -311,10 +311,10 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     transform_a_to_fg(a, q_sq, k_grid, z_grid);
     const auto& fg = a;
     // save to the prepared file
-    saveToFile_withGrids<n_structs>(fg, "fg_file.dat", q_sq, k_grid, z_grid);
+    saveToFile_withGrids<n_structs>(fg, "fg_file", q_sq, k_grid, z_grid);
     // save to the prepared file
     const auto fg_z0 = average_array_z0(fg, z_0);
-    saveToFile_withGrids<n_structs>(fg_z0, "fg_z0_file.dat", q_sq, k_grid);
+    saveToFile_withGrids<n_structs>(fg_z0, "fg_z0_file", q_sq, k_grid);
     std::cout << "  done\n";
 
     const auto iter_end_time = steady_clock::now();
@@ -347,9 +347,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         w[2][k_idx][z_idx] = Delta_B<Quark>(kminus2,kplus2,quark);
       }
     }
-    saveToFile_withGrids<3>(w, "w_file.dat", q_sq, k_grid, z_grid);
+    saveToFile_withGrids<3>(w, "w_file", q_sq, k_grid, z_grid);
     const auto w_z0 = average_array_z0(w, z_0);
-    saveToFile_withGrids<3>(w_z0, "w_z0_file.dat", q_sq, k_grid);
+    saveToFile_withGrids<3>(w_z0, "w_z0_file", q_sq, k_grid);
   }
 
   auto end_time = steady_clock::now();
