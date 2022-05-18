@@ -1,0 +1,71 @@
+\documentclass[pt12]{beamer}
+%\documentclass[pt12,externalviewer]{beamer}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows, arrows.meta}
+
+\usepackage{verbatim}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[edges]{forest}
+
+% Fonts
+\usepackage[]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+
+\mode<presentation>
+{
+  \usetheme{Pittsburgh}
+  \setbeamercolor{alerted text}{fg=blue}
+  \setbeamertemplate{section in toc}[ball unnumbered]
+  \setbeamertemplate{blocks}[rounded][shadow=true]
+  \setbeamercolor{block title}{bg=blue!30,fg=black}
+  \setbeamercolor{block body}{bg=lightgray!30,fg=black}
+}
+
+%BEAUTIFUL PIZZA RIO
+\defbeamertemplate{itemize item}{image}{\small\includegraphics[height=1.7ex]{graphics/pizzario}}
+\defbeamertemplate{itemize subitem}{image}{\scriptsize\includegraphics[height=1.7ex]{graphics/pizzario}}
+\defbeamertemplate{itemize subsubitem}{image}{\tiny\includegraphics[height=1.7ex]{graphics/pizzario}}
+
+\setbeamertemplate{itemize item}[image]
+\setbeamertemplate{itemize subitem}[image]
+\setbeamertemplate{itemize subsubitem}[image]
+
+\title[ECT* DTP 2022]{The Quark-Photon Vertex}
+\author{S. Hagel, L. Kiefer, F. Murgana, F.R. Sattler, J. Wessely}
+\date{18. May 2022}
+
+\begin{document}
+
+  \begin{frame}[plain]
+    \titlepage
+  \end{frame}
+
+  \begin{frame}[label=outline]\frametitle{Outline}
+    \tableofcontents
+  \end{frame}
+
+  \section{Motivation}\label{sec:1}
+  \include{slide1}
+
+
+  \section{Quark-Photon Vertex}\label{sec:2}
+    \include{slide2}
+
+  \section{Bethe-Salpeter equation (BSE)}\label{sec:3}
+    \include{slide3}
+    \include{slide4}
+    \include{slide4_5}
+    \include{slide5}
+
+  \section{Project management}\label{sec:4}
+    \include{slide6}
+
+  \section{Results}\label{sec:5}
+    \include{slide7}
+
+\end{document}
