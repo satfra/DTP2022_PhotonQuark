@@ -134,5 +134,5 @@ mv main.pdf "${*: -1}".pdf
 if [ ${KEEP_ALL} = false ]; then
     echo "Cleaning up..."
     rm main.* ./*.bib
-    rm *.aux
+    rm ./*.aux
 fi
