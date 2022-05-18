@@ -1,0 +1,54 @@
+set term pdf
+
+set logscale x
+set logscale y
+
+set grid
+
+set format y '10^{%T}'
+set format x '10^{%T}'
+
+set xlabel "Q^2 [GeV^2]"
+set ylabel "k^2 [GeV^2]"
+
+# No Pauli Villars
+
+set output "wti1.pdf"
+set zlabel "wti1"
+splot "data/dse_nopv/fg_z0_file_idx_8.dat" u 1:3:($4) palette with lines t"g1", \
+      "data/dse_nopv/w_z0_file_idx_0.dat" u 1:3:4 palette with lines t"\Sigma_A"
+
+set output "wti2.pdf"
+set zlabel "wti2"
+splot "data/dse_nopv/fg_z0_file_idx_9.dat" u 1:3:(-$4) palette with lines t"g2", \
+      "data/dse_nopv/w_z0_file_idx_1.dat" u 1:3:4 palette with lines t"2\Delta_A"
+
+set output "wti3.pdf"
+set zlabel "wti3"
+splot "data/dse_nopv/fg_z0_file_idx_10.dat" u 1:3:4 palette with lines t"g3", \
+      "data/dse_nopv/w_z0_file_idx_0.dat" u 1:3:4 palette with lines t"-2\Delta_B"
+
+set output "wti4.pdf"
+set zlabel "wti4"
+splot "data/dse_nopv/fg_z0_file_idx_11.dat" u 1:3:4 palette with lines t"g4"
+
+# With Pauli Villars
+
+set output "wti1_pv.pdf"
+set zlabel "wti1"
+splot "data/dse_pv/fg_z0_file_idx_8.dat" u 1:3:($4) palette with lines t"g1", \
+      "data/dse_pv/w_z0_file_idx_0.dat" u 1:3:4 palette with lines t"\Sigma_A"
+
+set output "wti2_pv.pdf"
+set zlabel "wti2"
+splot "data/dse_pv/fg_z0_file_idx_9.dat" u 1:3:(-$4) palette with lines t"g2", \
+      "data/dse_pv/w_z0_file_idx_1.dat" u 1:3:4 palette with lines t"2\Delta_A"
+
+set output "wti3_pv.pdf"
+set zlabel "wti3"
+splot "data/dse_pv/fg_z0_file_idx_10.dat" u 1:3:4 palette with lines t"g3", \
+      "data/dse_pv/w_z0_file_idx_0.dat" u 1:3:4 palette with lines t"-2\Delta_B"
+
+set output "wti4_pv.pdf"
+set zlabel "wti4"
+splot "data/dse_pv/fg_z0_file_idx_11.dat" u 1:3:4 palette with lines t"g4"
