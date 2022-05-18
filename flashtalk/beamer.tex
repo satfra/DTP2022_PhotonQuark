@@ -6,6 +6,7 @@
 
 \usepackage{verbatim}
 \usepackage{amssymb}
+\usepackage{amsmath}
 \usepackage{graphicx}
 \usepackage[edges]{forest}
 
@@ -26,9 +27,9 @@
 }
 
 %BEAUTIFUL PIZZA RIO
-\defbeamertemplate{itemize item}{image}{\small\includegraphics[height=1.7ex]{pizzario.png}}
-\defbeamertemplate{itemize subitem}{image}{\scriptsize\includegraphics[height=1.7ex]{pizzario.png}}
-\defbeamertemplate{itemize subsubitem}{image}{\tiny\includegraphics[height=1.7ex]{pizzario.png}}
+\defbeamertemplate{itemize item}{image}{\small\includegraphics[height=1.7ex]{graphics/pizzario}}
+\defbeamertemplate{itemize subitem}{image}{\scriptsize\includegraphics[height=1.7ex]{graphics/pizzario}}
+\defbeamertemplate{itemize subsubitem}{image}{\tiny\includegraphics[height=1.7ex]{graphics/pizzario}}
 
 \setbeamertemplate{itemize item}[image]
 \setbeamertemplate{itemize subitem}[image]
@@ -48,23 +49,23 @@
     \tableofcontents
   \end{frame}
 
-  \section{Motivation}
+  \section{Motivation}\label{sec:1}
   \include{slide1}
 
 
-  \section{Quark-Photon Vertex}
+  \section{Quark-Photon Vertex}\label{sec:2}
     \include{slide2}
 
-  \section{Bethe-Salpeter equation (BSE)}
+  \section{Bethe-Salpeter equation (BSE)}\label{sec:3}
     \include{slide3}
     \include{slide4}
     \include{slide4_5}
     \include{slide5}
 
-  \section{Project management}
+  \section{Project management}\label{sec:4}
     \include{slide6}
 
-  \section{Results}
+  \section{Results}\label{sec:5}
     \include{slide7}
 
 \end{document}
