@@ -26,7 +26,6 @@ mat_double gauleg(double x1, double x2, int n)
     m=(n+1)/2;
     xm=0.5*(x2+x1);
     xl=0.5*(x2-x1);
-    #pragma omp parallel for
     for (i=1;i<=m;i++) {
         double p1, p2, p3, pp, z, z1;
         z=cos(M_PI*(i-0.25)/(n+0.5));
