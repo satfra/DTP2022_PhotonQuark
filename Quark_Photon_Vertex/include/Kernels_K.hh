@@ -2,24 +2,23 @@
 
 #include <cmath>
 #include <vector>
-#include <momentumtransform.hh>
+#include "momentumtransform.hh"
+
+using namespace momentumtransform;
 
 class K
 {
   private:
-    double y, l2, u, uprime, V, w, wprime, X;
-
+    //double y, l_sq(k_sq, k_prime_sq, z, z_prime, y), u, u(k_prime_sq, z_prime), V, w, w_prime, X(u, u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
+    double k_sq, k_prime_sq, z, z_prime, y;
   public:
-    K(const double& k_sq, const double& k_sq_prime, const double& z, const double& z_prime, const double& y_, const double& q_sq)
+    K(const double& k_sq_, const double& k_prime_sq_, const double& z_, const double& z_prime_, const double& y_)
     {
+      k_sq = k_sq_;
+      k_prime_sq = k_prime_sq_;
+      z = z_;
+      z_prime = z_prime_;
       y = y_;
-      l2 = momentumtransform::l2(k_sq, k_sq_prime, z, z_prime, y);
-      u = momentumtransform::u(k_sq, z);
-      uprime = momentumtransform::u(k_sq_prime, z_prime);
-      V = momentumtransform::V(k_sq, k_sq_prime, z, z_prime, l2);
-      w = momentumtransform::w(u, l2);
-      wprime = momentumtransform::w(uprime, l2);
-      X = momentumtransform::X(u, uprime, l2);
     }
 
     static bool isZeroIndex(const unsigned& i, const unsigned& j)
@@ -73,193 +72,147 @@ class K
 
       switch(super_idx)
       {
-        case 101:
-          return K11(y, l2, u, uprime, V, w, wprime, X);
+        // case 101:
+        //   return K11;
+        // case 202:
+        //   return K22;
+        // case 303:
+        //   return K33;
+         case 101:
+          return K11(k_sq, k_prime_sq, z, z_prime, y);
         case 202:
-          return K22(y, l2, u, uprime, V, w, wprime, X);
+          return K22(k_sq, k_prime_sq, z, z_prime, y);
         case 303:
-          return K33(y, l2, u, uprime, V, w, wprime, X);
+          return K33(k_sq, k_prime_sq, z, z_prime, y);
         case 404:
-          return K44(y, l2, u, uprime, V, w, wprime, X);
+          return K44(k_sq, k_prime_sq, z, z_prime, y);
         case 505:
-          return K55(y, l2, u, uprime, V, w, wprime, X);
+          return K55(k_sq, k_prime_sq, z, z_prime, y);
         case 606:
-          return K66(y, l2, u, uprime, V, w, wprime, X);
+          return K66(k_sq, k_prime_sq, z, z_prime, y);
         case 707:
-          return K77(y, l2, u, uprime, V, w, wprime, X);
+          return K77(k_sq, k_prime_sq, z, z_prime, y);
         case 808:
-          return K88(y, l2, u, uprime, V, w, wprime, X);
+          return K88(k_sq, k_prime_sq, z, z_prime, y);
         case 106:
-          return K16(y, l2, u, uprime, V, w, wprime, X);
+          return K16(k_sq, k_prime_sq, z, z_prime, y);
         case 601:
-          return K61(y, l2, u, uprime, V, w, wprime, X);
+          return K61(k_sq, k_prime_sq, z, z_prime, y);
         case 107:
-          return K17(y, l2, u, uprime, V, w, wprime, X);
+          return K17(k_sq, k_prime_sq, z, z_prime, y);
         case 701:
-          return K71(y, l2, u, uprime, V, w, wprime, X); 
+          return K71(k_sq, k_prime_sq, z, z_prime, y); 
         case 607:
-          return K67(y, l2, u, uprime, V, w, wprime, X);
+          return K67(k_sq, k_prime_sq, z, z_prime, y);
         case 706:
-          return K76(y, l2, u, uprime, V, w, wprime, X);
+          return K76(k_sq, k_prime_sq, z, z_prime, y);
         case 203:
-          return K23(y, l2, u, uprime, V, w, wprime, X);
+          return K23(k_sq, k_prime_sq, z, z_prime, y);
         case 302:
-          return K32(y, l2, u, uprime, V, w, wprime, X);
+          return K32(k_sq, k_prime_sq, z, z_prime, y);
         case 208:
-          return K28(y, l2, u, uprime, V, w, wprime, X);
+          return K71(k_sq, k_prime_sq, z, z_prime, y) + std::sqrt(2.) * (1. - y * y);
         case 802:
-          return K82(y, l2, u, uprime, V, w, wprime, X);
+          return K17(k_sq, k_prime_sq, z, z_prime, y) + std::sqrt(2.) * (1. - y * y);
         case 308:
-          return K38(y, l2, u, uprime, V, w, wprime, X);
+          return -K61(k_sq, k_prime_sq, z, z_prime, y);
         case 803:
-          return K83(y, l2, u, uprime, V, w, wprime, X);
+          return -K16(k_sq, k_prime_sq, z, z_prime, y);
 
         case 909:
-          return K99(y, l2, u, uprime, V, w, wprime, X);
+          return K55(k_sq, k_prime_sq, z, z_prime, y)/y;
         case 1010:
-          return K1010(y, l2, u, uprime, V, w, wprime, X);
+          return K66(k_sq, k_prime_sq, z, z_prime, y)/y;
         case 1011:
-          return K1011(y, l2, u, uprime, V, w, wprime, X);
+          return K67(k_sq, k_prime_sq, z, z_prime, y)/y;
         case 1110:
-          return K1110(y, l2, u, uprime, V, w, wprime, X);
+          return K76(k_sq, k_prime_sq, z, z_prime, y)/y;
         case 1111:
-          return K1111(y, l2, u, uprime, V, w, wprime, X);
+          return K77(k_sq, k_prime_sq, z, z_prime, y)/y;
         case 1212:
-          return K1212(y, l2, u, uprime, V, w, wprime, X);
+          return K88(k_sq, k_prime_sq, z, z_prime, y)/y;
       }
       return 0.;
     }
 
-  private:
-    double K11(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+  public:
+    double K11(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -(1. + y * y) / 2. - y * (1. - y * y) * X;
+      return -(1. + y * y) / 2. - y * (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K22(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K22(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -(1. + y * y) / 2. * (1. - 2. * l2 * V * V) + y * (1. - y * y) * X;
+      return -(1. + y * y) / 2. * (1. - 2. * l_sq(k_sq, k_prime_sq, z, z_prime, y) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y))) + y * (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K33(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K33(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return  y * (1. - 2. * l2 * V * V) - (1. - y * y) * X;
+      return  y * (1. - 2. * l_sq(k_sq, k_prime_sq, z, z_prime, y) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y))) - (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
+    }
+    double K44(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
+    {
+      return y + (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K44(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return y + (1. - y * y) * X;
-    }
-
-    double K55(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K55(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
       return 3. * y;
     }
 
-    double K66(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K66(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -y * (1. + 2. * l2 * V * V);
+      return -y * (1. + 2. * l_sq(k_sq, k_prime_sq, z, z_prime, y) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y)));
     }
 
-    double K77(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K77(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -y * y * (3. - 2. * l2 * V*V) + 2. * y * (1. - y * y) * X;
+      return -y * y * (3. - 2. * l_sq(k_sq, k_prime_sq, z, z_prime, y) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y))) + 2. * y * (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K88(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K88(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return y * y - 2. * y * (1. - y * y) * X;
+      return y * y - 2. * y * (1. - y * y) * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K16(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K16(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return std::sqrt(2.) * (1. - y * y) * uprime * V;
+      return std::sqrt(2.) * (1. - y * y) * u(k_prime_sq, z_prime) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K61(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K61(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -std::sqrt(2.) * (1. - y * y) * u * V;
+      return -std::sqrt(2.) * (1. - y * y) * u(k_sq, z) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K17(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K17(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -(1. - y * y) / std::sqrt(2.) * (1. + 2. * wprime - 2. * y * X);
+      return -(1. - y * y) / std::sqrt(2.) * (1. + 2. * w(u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y)) - 2. * y * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y)));
     }
 
-    double K71(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K71(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -(1. - y * y) / std::sqrt(2.) * (1. + 2 * w - 2. * y * X);
+      return -(1. - y * y) / std::sqrt(2.) * (1. + 2 * w(u(k_sq, z), l_sq(k_sq, k_prime_sq, z, z_prime, y)) - 2. * y * X(u(k_sq, z), u(k_prime_sq, z_prime), l_sq(k_sq, k_prime_sq, z, z_prime, y)));
     }
 
-    double K23(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K23(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return (2. * y * u - (1. + y * y) * uprime) * V;
+      return (2. * y * u(k_sq, z) - (1. + y * y) * u(k_prime_sq, z_prime)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K32(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K32(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -(2. * y * uprime - (1. + y * y) * u) * V;
+      return -(2. * y * u(k_prime_sq, z_prime) - (1. + y * y) * u(k_sq, z)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K67(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K67(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return 2. * y * (uprime - y * u) * V;
+      return 2. * y * (u(k_prime_sq, z_prime) - y * u(k_sq, z)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K76(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
+    double K76(const double& k_sq, const double& k_prime_sq, const double& z, const double& z_prime, const double& y) const
     {
-      return -2. * y * (u - y * uprime) * V;
+      return -2. * y * (u(k_sq, z) - y * u(k_prime_sq, z_prime)) * V(k_sq, k_prime_sq, z, z_prime, l_sq(k_sq, k_prime_sq, z, z_prime, y));
     }
 
-    double K28(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K71(y, l2, u, uprime, V, w, wprime, X)
-        + std::sqrt(2.) * (1. - y * y);
-    }
-
-    double K82(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K17(y, l2, u, uprime, V, w, wprime, X)
-        + std::sqrt(2.) * (1. - y * y);
-    }
-
-    double K38(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return -K61(y, l2, u, uprime, V, w, wprime, X);
-    }
-
-    double K83(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return -K16(y, l2, u, uprime, V, w, wprime, X);
-    }
-
-    double K99(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K55(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
-
-    double K1010(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K66(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
-
-    double K1011(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K67(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
-
-    double K1110(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K76(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
-
-    double K1111(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K77(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
-
-    double K1212(const double& y, const double& l2, const double& u, const double& uprime, const double& V, const double& w, const double& wprime, const double& X) const
-    {
-      return K88(y, l2, u, uprime, V, w, wprime, X) / y;
-    }
 };

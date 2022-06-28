@@ -1,22 +1,19 @@
 #pragma once
 
-#include <quark_model_functions.hh>
+#include "quark_model_functions.hh"
 #include <cmath>
 
-template<typename Quark>
-double Sigma_A (double &kminus2, double &kplus2, const Quark &quark)
+double Sigma_A (double &kminus2, double &kplus2, const double& quark_M_p, const double& quark_M_m, const double& quark_A_p, const double& quark_A_m)
 {
-    return 0.5 * (quark.A(kplus2) + quark.A(kminus2));
+    return 0.5 * (quark_A_p + quark_A_m);
 }
 
-template<typename Quark>
-double Delta_A (double &kminus2, double &kplus2, const Quark &quark)
+double Delta_A (double &kminus2, double &kplus2, const double& quark_M_p, const double& quark_M_m, const double& quark_A_p, const double& quark_A_m)
 {
-   return (quark.A(kplus2) - quark.A(kminus2)) / (kplus2 - kminus2);
+   return (quark_A_p - quark_A_m) / (kplus2 - kminus2);
 }
 
-template<typename Quark>
-double Delta_B (double &kminus2, double &kplus2, const Quark &quark)
+double Delta_B (double &kminus2, double &kplus2, const double& quark_M_p, const double& quark_M_m, const double& quark_A_p, const double& quark_A_m)
 {
-   return (quark.A(kplus2)*quark.M(kplus2) - quark.A(kminus2)*quark.M(kminus2)) / (kplus2 - kminus2);
+   return (quark_A_p * quark_M_p - quark_A_m * quark_M_m) / (kplus2 - kminus2);
 }

@@ -6,6 +6,7 @@
 #include "types.hh"
 #include "parameters.hh"
 #include "LinearInterpolate.hh"
+#include "spline.h"
 
 #include "quark_dse.hh"
 
@@ -16,6 +17,7 @@ class quark_model
     static constexpr double ScaleFactor_AM = 1./(0.7*0.7);
 
   public:
+    vec_double quark_a, quark_b, quark_grid;
     // The model for A(x) given in the project description
     double A(const double& p_sq) const
     {
@@ -40,42 +42,42 @@ class quark_model
 class quark_DSE
 {
   public:
-    // The model for A(x) given in the project description
-    double A(const double& p_sq) const
-    {
-      const double q = std::log(p_sq);
-      lInterpolator ip_a(quark_grid, quark_a);
-      return ip_a(q);
-    }
-
-    // The model for B(x) given in the project description
-    double M(const double& p_sq) const
-    {
-      const double q = std::log(p_sq);
-      lInterpolator ip_a(quark_grid, quark_a);
-      lInterpolator ip_b(quark_grid, quark_b);
-      return ip_b(q)/ip_a(q);
-    }
-
-    double z2() const
-    {
-      return quark_z2;
-    }
-
-    quark_DSE()
-    {
-      const mat_double quark_a_and_b = quark_iterate_dressing_functions(
-          parameters::physical::quark_a0,
-          parameters::physical::m_c,
-          parameters::physical::m_c,
-          parameters::physical::mu);
-      quark_a = quark_a_and_b[0];
-      quark_b = quark_a_and_b[1];
-      quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
-      quark_z2 = quark_a_and_b[3][0];
-    }
-
-  private:
     vec_double quark_a, quark_b, quark_grid;
     double quark_z2;
+
+    double A(const double& p_sq) const
+      {
+        const double q = std::log(p_sq);
+        // tk::spline ip_a(quark_grid, quark_a);
+        lInterpolator ip_a(quark_grid, quark_a);
+        return ip_a(q);
+      }
+
+      double M(const double& p_sq) const
+      {
+        const double q = std::log(p_sq);
+        // tk::spline ip_a(quark_grid, quark_a);
+        // tk::spline ip_b(quark_grid, quark_b);
+        lInterpolator ip_a(quark_grid, quark_a);
+        lInterpolator ip_b(quark_grid, quark_b);
+        return ip_b(q)/ip_a(q);
+      }
+
+      double z2() const
+      {
+        return quark_z2;
+      }
+
+      quark_DSE()
+      {
+        const mat_double quark_a_and_b = quark_iterate_dressing_functions(
+            parameters::physical::quark_a0,
+            parameters::physical::m_c,
+            parameters::physical::m_c,
+            parameters::physical::mu);
+        quark_a = quark_a_and_b[0];
+        quark_b = quark_a_and_b[1];
+        quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
+        quark_z2 = quark_a_and_b[3][0];
+      };      
 };
