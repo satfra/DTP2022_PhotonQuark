@@ -104,58 +104,6 @@ double update_accuracy_z_dep(const dressing* a, const dressing* a_old)
 }
 
 
-template<typename Quark>
-void calculate_K_prime_wrapper(const vec_double &q_grid, const vec_double &z_grid, const vec_double &log_k_sq_grid, const vec_double &y_grid, const bool use_PauliVillars, const bool debug)
-{
-  using namespace std::chrono;
-
-  using namespace parameters::numerical;
-  const unsigned z_0 = z_grid.size() / 2;
-
-  const vec_cmplx temp0(z_steps, 0.0);
-  const mat_cmplx temp1(k_steps, temp0);
-
-  const vec_double temp0_d(z_steps, 0.0);
-  const mat_double temp1_d(k_steps, temp0_d);
-  const tens_double temp2_d(n_structs, temp1_d);
-  const tens2_double temp3_d(z_steps, temp2_d);
-  const jtens2_double temp4_d(k_steps, temp3_d);
-
-  // Do some Legendre Magic
-  DiscrIntegrator1d yint1d;
-
-  const Quark quark;
-
-  // loop over q
-  for (unsigned q_iter = 0; q_iter < q_grid.size(); q_iter++)
-  {
-    const auto iter_start_time = steady_clock::now();
-
-    const double &q_sq = q_grid[q_iter];
-    std::cout << "\n_____________________________________\n\n"
-      << "Calculation for q^2 = " << q_sq << "\n";
-
-    // define new a, b
-    tens_cmplx a(n_structs, temp1);
-    tens_cmplx b(n_structs, temp1);
-    tens_cmplx fg(n_structs,temp1);
-
-    // Precalculate the K kernel
-    std::cout << " Calculating K'_ij..." << std::flush;
-    
-    BSE_kernel_L *K_prime_L = new BSE_kernel_L;
-    BSE_kernel_T *K_prime_T = new BSE_kernel_T;
-    
-    calculate_K_prime(y_grid, yint1d, q_sq, z_grid, log_k_sq_grid, K_prime_L, K_prime_T, quark.z2(), use_PauliVillars);
-    std::cout << " done\n";
-
-    const auto iter_end_time = steady_clock::now();
-    std::cout << "Calculation finished after " << duration_cast<milliseconds>(iter_end_time - iter_start_time).count()/1000.<< "s\n";
-  }
-}
-
-
-
 void a_iteration_step(
     dressing* a, const dressing* b, BSE_kernel_L* K_prime_L, BSE_kernel_T* K_prime_T, // BSE dressings, b and K^\prime_ij
     const vec_double &z_grid, const vec_double &log_k_sq_grid, // angular and momentum variable grids
@@ -253,10 +201,6 @@ void b_iteration_step(const dressing* a, const double &q_sq, const vec_double &z
   #pragma omp parallel for collapse(2) // parallelize the outermost two loops
   for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
     for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) 
-    {
-      const double k_sq = std::exp(log_k_sq_grid[k_idx]);
-      const double& z = z_grid[z_idx];
-
       for (unsigned i_global = 0; i_global < n_structs; ++i_global)
       {
         // Initialize the b's to 0
@@ -274,10 +218,6 @@ void b_iteration_step(const dressing* a, const double &q_sq, const vec_double &z
           (*b)[i_global][k_idx][z_idx] += (*kernel_G)[i_block][i_local][j_local][k_idx][z_idx] * (*a)[j_global][k_idx][z_idx];
         }
       }
-    }
-
-  emptyIdxFile<12>("b_file", "#q_sq i k_sq z Re(fg) Im(fg)");
-  saveToFile_withGrids<parameters::numerical::n_structs>(b, "b_file", q_sq, log_k_sq_grid, z_grid);
 }
 
 
@@ -424,6 +364,21 @@ void solve_BSE(const vec_double &q_grid, const vec_double &z_grid, const vec_dou
 
 std::cout << "\n\n_______________    Quark-photon-vertex BSE    _______________\n\n\n";
 
+  // Calculate BSE kernel
+    std::cout << "\nCalculating BSE kernel..." << std::flush;
+
+    const auto BSE_kernel_start_time = steady_clock::now();
+
+    // allocate
+    BSE_kernel_L *kernel_K_L = new BSE_kernel_L; // allocate
+    BSE_kernel_T *kernel_K_T = new BSE_kernel_T;
+
+    calculate_BSE_kernel(y_grid, yint1d, z_grid, log_k_sq_grid, kernel_K_L, kernel_K_T, quark.z2(), use_PauliVillars);
+
+    // end BSE kernel timer
+    const auto BSE_kernel_end_time = steady_clock::now();
+    std::cout << " done (t = " << duration_cast<milliseconds>(BSE_kernel_end_time - BSE_kernel_start_time).count()/1000.<< "s)\n";
+
   // loop over q
   for (unsigned q_iter = 0; q_iter < q_grid.size(); q_iter++)
   {
@@ -439,19 +394,6 @@ std::cout << "\n\n_______________    Quark-photon-vertex BSE    _______________\
     dressing *b = new dressing;
     dressing *fg = new dressing;
 
-    // Calculate BSE kernel
-    std::cout << " - Calculating BSE kernel..." << std::flush;
-
-    // allocate
-    BSE_kernel_L *kernel_K_L = new BSE_kernel_L; // allocate
-    BSE_kernel_T *kernel_K_T = new BSE_kernel_T;
-
-    calculate_BSE_kernel(y_grid, yint1d, q_sq, z_grid, log_k_sq_grid, kernel_K_L, kernel_K_T, quark.z2(), use_PauliVillars);
-
-    // end BSE kernel timer
-    const auto BSE_kernel_end_time = steady_clock::now();
-    std::cout << " done (t = " << duration_cast<milliseconds>(BSE_kernel_end_time - iter_start_time).count()/1000.<< "s)\n";
-
     // Calculate propagator kernel
     std::cout << " - Calculating propagator kernel...";
 
@@ -461,7 +403,6 @@ std::cout << "\n\n_______________    Quark-photon-vertex BSE    _______________\
     calculate_propagator_kernel<Quark>(q_sq, z_grid, log_k_sq_grid, quark, kernel_G, ip_A, ip_M);
 
     // end propagator kernel timer
-    const auto propagator_kernel_end_time = steady_clock::now();
     std::cout << " done\n";
 
     // Initialize a with bare vertex
@@ -489,13 +430,15 @@ std::cout << "\n\n_______________    Quark-photon-vertex BSE    _______________\
       // check the convergence
       current_acc = update_accuracy_z_dep(a, a_old);
       debug_out("    current_step = " + std::to_string(current_step) + "\n    current_acc = " + std::to_string(current_acc) + "\n", debug);
+
+      delete a_old;
     }
 
     // stop the iteration timer
     const auto iter_end_time = steady_clock::now();
 
     if (current_acc < target_acc)
-      std::cout << " done (" << current_step << " iterations, t = " << duration_cast<milliseconds>(iter_end_time - BSE_kernel_end_time).count()/1000.<< "s)\n";
+      std::cout << " done (" << current_step << " iterations, t = " << duration_cast<milliseconds>(iter_end_time - iter_start_time).count()/1000.<< "s)\n";
     else
       std::cout << "  ! Did not converge !\n";
 
@@ -514,8 +457,16 @@ std::cout << "\n\n_______________    Quark-photon-vertex BSE    _______________\
     std::cout << "  done\n";
 
     std::cout << "Calculation finished after " << duration_cast<milliseconds>(iter_end_time - iter_start_time).count()/1000.<< "s\n";
+    
+    delete a;
+    delete b;
+    delete fg;
+    delete kernel_G;
   }
-  
+
+  delete kernel_K_L;
+  delete kernel_K_T;
+
   auto end_time = steady_clock::now();
   std::cout << "\nProgram finished after " << duration_cast<milliseconds>(end_time - start_time).count()/1000.<< "s\n";
 }

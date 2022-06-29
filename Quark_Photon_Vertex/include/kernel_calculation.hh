@@ -27,9 +27,58 @@ using DiscrIntegrator2d = gaulegIntegral2d<LegendrePolynomial<parameters::numeri
 
 
 
+template<typename Quark>
+void calculate_K_prime_wrapper(const vec_double &q_grid, const vec_double &z_grid, const vec_double &log_k_sq_grid, const vec_double &y_grid, const bool use_PauliVillars, const bool debug)
+{
+  using namespace std::chrono;
+
+  using namespace parameters::numerical;
+
+  const vec_cmplx temp0(z_steps, 0.0);
+  const mat_cmplx temp1(k_steps, temp0);
+
+  const vec_double temp0_d(z_steps, 0.0);
+  const mat_double temp1_d(k_steps, temp0_d);
+  const tens_double temp2_d(n_structs, temp1_d);
+  const tens2_double temp3_d(z_steps, temp2_d);
+  const jtens2_double temp4_d(k_steps, temp3_d);
+
+  // Do some Legendre Magic
+  DiscrIntegrator1d yint1d;
+
+  const Quark quark;
+
+  // loop over q
+  for (unsigned q_iter = 0; q_iter < q_grid.size(); q_iter++)
+  {
+    const auto iter_start_time = steady_clock::now();
+
+    const double &q_sq = q_grid[q_iter];
+    std::cout << "\n_____________________________________\n\n"
+      << "Calculation for q^2 = " << q_sq << "\n";
+
+    // define new a, b
+    tens_cmplx a(n_structs, temp1);
+    tens_cmplx b(n_structs, temp1);
+    tens_cmplx fg(n_structs,temp1);
+
+    // Precalculate the K kernel
+    std::cout << " Calculating K'_ij..." << std::flush;
+    
+    BSE_kernel_L *K_prime_L = new BSE_kernel_L;
+    BSE_kernel_T *K_prime_T = new BSE_kernel_T;
+    
+    calculate_K_prime(y_grid, yint1d, q_sq, z_grid, log_k_sq_grid, K_prime_L, K_prime_T, quark.z2(), use_PauliVillars);
+    std::cout << " done\n";
+
+    const auto iter_end_time = steady_clock::now();
+    std::cout << "Calculation finished after " << duration_cast<milliseconds>(iter_end_time - iter_start_time).count()/1000.<< "s\n";
+  }
+}
+
 
 // This method performs the integration over the kinematic variable y of the kernel K and the coupling g
-void calculate_BSE_kernel(const vec_double &y_grid, const DiscrIntegrator1d &yint1d, const double &q_sq,
+void calculate_BSE_kernel(const vec_double &y_grid, const DiscrIntegrator1d &yint1d,
     const vec_double &z_grid, const vec_double &log_k_sq_grid, BSE_kernel_L* K_prime_L, BSE_kernel_T* K_prime_T, const double &z2, const bool use_PauliVillars)
 {
   using namespace parameters::numerical;
