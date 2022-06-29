@@ -6,6 +6,9 @@
 #include <complex>
 #include <algorithm>
 #include <iostream>
+#include <string>
+#include <cstdlib>
+#include <cxxabi.h>
 
   template<int n, typename RF> 
 constexpr RF powr(const RF& x)
@@ -86,4 +89,33 @@ int locate(const std::vector<double> &xx, const double& x)
   }
 
   return jl;
+}
+
+template<typename T>
+std::vector<T> logGrid(unsigned steps, const T& min, const T& max)
+{
+  std::vector<T> grid(steps);
+  std::vector<T> tmp_grid(steps);
+
+  iota(tmp_grid.begin(),tmp_grid.end(),0);
+
+  tmp_grid = linearMapTo(tmp_grid, 0., double(tmp_grid.size()-1), log(min), log(max));
+
+  for (unsigned i = 0; i < tmp_grid.size(); ++i)
+    grid[i] = exp(tmp_grid[i]);
+
+  return grid;
+}
+
+template<typename T>
+std::string type_name()
+{
+    int status;
+    std::string tname = typeid(T).name();
+    char *demangled_name = abi::__cxa_demangle(tname.c_str(), NULL, NULL, &status);
+    if(status == 0) {
+        tname = demangled_name;
+        std::free(demangled_name);
+    }   
+    return tname;
 }

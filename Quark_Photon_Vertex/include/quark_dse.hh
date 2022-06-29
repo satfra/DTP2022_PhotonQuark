@@ -73,7 +73,6 @@ inline double angular_function(double psi)
 }
 
 
-
 // TODO: Do the same for the precalculation and BSE functions.
 // TODO: Check the exact momentum argument in the equations.
 
@@ -82,6 +81,7 @@ tens_double init_brl_angular_matrix(double mu, const weight_struc &weights)
     tens_double temp(2);
     mat_double temp_mat(parameters::numerical::quark_dse_steps_q);
     vec_double temp_vec(parameters::numerical::quark_dse_steps_q + 1);
+    //#pragma omp parallel for
     for (unsigned int i = 0; i < parameters::numerical::quark_dse_steps_q; ++i) {
         temp_mat[i] = temp_vec;
     }
@@ -145,7 +145,7 @@ double brl_integrate_coupled_a(int pidx, const vec_double &a_values,
      */
     double s_a = 0.0;
 
-#pragma omp parallel for reduction(+:s_a)
+    #pragma omp parallel for reduction(+:s_a)
     for (unsigned int j = 0; j < parameters::numerical::quark_dse_steps_q; ++j) {
         const double q = exp(weights.dse_absci_q[j] / 2.0);
 
@@ -167,7 +167,7 @@ double brl_integrate_coupled_b(int pidx, const vec_double &a_values,
      */
     double s_b = 0.0;
 
-#pragma omp parallel for reduction(+:s_b)
+    #pragma omp parallel for reduction(+:s_b)
     for (unsigned int j = 0; j < parameters::numerical::quark_dse_steps_q; ++j) {
         const double q = exp(absci_x[j] / 2.0);
         s_b += angular_matrix[1][j][pidx] * b_values[j] /
@@ -179,7 +179,8 @@ double brl_integrate_coupled_b(int pidx, const vec_double &a_values,
 
 mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, double mu)
 {
-    /*
+    std::cout << "Solving equation...";
+     /*
      * The iterator for the dressing functions A and B. It iterates for
      * MAX_ITERATIONS steps, or until the wanted accuracy is reached. The
      * resulting dressing functions are calculated at the abscissas given in
@@ -189,8 +190,8 @@ mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, dou
     vec_double a_values(parameters::numerical::quark_dse_steps_q, a0);
     vec_double b_values(parameters::numerical::quark_dse_steps_q, b0);
 
-    const mat_double temp_q = gauleg(2.0 * std::log(parameters::physical::lambda_IR),
-                               2.0 * std::log(parameters::physical::lambda_UV),
+    const mat_double temp_q = gauleg(2.0 * std::log(parameters::physical::lambda_IR_DSE),
+                               2.0 * std::log(parameters::physical::lambda_UV_DSE),
                                parameters::numerical::quark_dse_steps_q);
     const vec_double dse_absci_q = temp_q[0];
     const vec_double dse_weights_q = temp_q[1];
@@ -282,7 +283,7 @@ mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, dou
         ++k;
     } while(k < parameters::numerical::quark_dse_max_steps && current_acc > parameters::numerical::quark_dse_acc);
 
-    std::cout << "\nQuark DSE iteration converged after " << k << " iterations.\n";
+    std::cout << " done (" << k << " iterations";
 
     // Preparing array for return...
     mat_double a2d(4);

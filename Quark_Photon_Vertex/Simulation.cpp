@@ -7,52 +7,57 @@
 #include "iteration.hh"
 #include "parameters.hh"
 
-int main(int argc, char *argv[]) 
+using namespace std;
+
+#define LOG(x) cout << x << endl
+
+int main(int argc, char*argv[])
 {
-  // get flags from shell
-  std::string flags = argc > 1 ? argv[1] : "";
+    std::cout << "\n\n#############     CALCULATION OF QUARK-PHOTON-VERTEX     #############\n\n\n";
 
-  const bool debug = flags.find('v') < flags.length() ? true : false;
-  if(debug) std::cout << "Showing debug output.\n";
+    // ++++++++++++++++++++++++++++ get flags from shell ++++++++++++++++++++++++++++
 
-  const bool use_quark_DSE = flags.find('d') < flags.length() ? true : false;
-  if(use_quark_DSE) std::cout << "Using the quark DSE.\n";
+    std::string flags = argc > 1 ? argv[1] : "";
 
-  const bool use_PauliVillars = flags.find('p') < flags.length() ? true : false;
-  if(use_PauliVillars) std::cout << "Using Pauli-Villars regularisation.\n";
+    const bool debug = flags.find('v') < flags.length() ? true : false;
+    if(debug) std::cout << "Showing debug output.\n";
 
-  // avoid z == 0 in a grid, which would lead to division by zero.
-  static_assert(parameters::numerical::z_steps % 2 == 0);
+    const bool use_quark_DSE = flags.find('d') < flags.length() ? true : false;
+    if(use_quark_DSE) std::cout << "Using the quark DSE.\n";
 
-  // create the k_grid, fill it and transform it to the correct range
-  std::vector<double> k_grid(parameters::numerical::k_steps);
-  std::iota(k_grid.begin(), k_grid.end(), 0);
-  k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1),
-                       std::log(parameters::physical::lambda_IR),
-                       std::log(parameters::physical::lambda_UV));
+    const bool use_PauliVillars = flags.find('p') < flags.length() ? true : false;
+    if(use_PauliVillars) std::cout << "Using Pauli-Villars regularisation.\n";
 
-  // create the q_grid, fill it and transform it to the correct range
-  std::vector<double> q_grid(parameters::numerical::q_steps);
 
-  std::vector<double> q_gridtemp(parameters::numerical::q_steps);
-  std::iota(q_gridtemp.begin(), q_gridtemp.end(), 0);
+    // ++++++++++++++++++++++++++++ create grids ++++++++++++++++++++++++++++
 
-  q_gridtemp = linearMapTo(q_gridtemp, 0., double(q_grid.size()-1), std::log(parameters::numerical::min_q_sq),
-                                std::log(parameters::numerical::max_q_sq));
-  for (unsigned int i = 0; i < q_grid.size(); ++i)
-    q_grid[i] = std::exp(q_gridtemp[i]);
+    // avoid z == 0 in a grid, which would lead to division by zero.
+    static_assert(parameters::numerical::z_steps % 2 == 0);
+    
+    // create k^2 grid - use legendre nodes on logarithmic scale
+    LegendrePolynomial<parameters::numerical::k_steps> lp_k;
+    const vector<double> gauleg_nodes_k = lp_k.zeroes();
+    std::vector<double> log_k_sq_grid_gauleg = linearMapTo(gauleg_nodes_k, gauleg_nodes_k.front(), gauleg_nodes_k.back(), 
+        std::log(parameters::physical::lambda_IR), std::log(parameters::physical::lambda_UV));
 
-  // We use the zeroes of LegendrePolynomials for the z and y grids
-  LegendrePolynomial<parameters::numerical::z_steps> lp_z;
-  LegendrePolynomial<parameters::numerical::y_steps> lp_y;
-  const std::vector<double> z_grid = lp_z.zeroes();
-  const std::vector<double> y_grid = lp_y.zeroes();
+    // create logarithmically spaced q grid
+    const vector<double> q_sq_grid = logGrid(parameters::numerical::q_steps,parameters::numerical::min_q_sq, parameters::numerical::max_q_sq);
+    
+    // We use the zeroes of LegendrePolynomials for the z and y grids
+    LegendrePolynomial<parameters::numerical::z_steps> lp_z;
+    LegendrePolynomial<parameters::numerical::y_steps> lp_y;
+    const vector<double> z_grid = lp_z.zeroes();
+    const vector<double> y_grid = lp_y.zeroes();
 
-  // Start the program
-  if(use_quark_DSE)
-    iterate_a_and_b<quark_DSE>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
-  else
-    iterate_a_and_b<quark_model>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
 
-  return 0;
+    // ++++++++++++++++++++++++++++ solve quark photon vertex ++++++++++++++++++++++++++++
+
+    if(use_quark_DSE)
+        solve_BSE<quark_DSE>(q_sq_grid, z_grid, log_k_sq_grid_gauleg, y_grid, use_PauliVillars, debug);
+    else
+        solve_BSE<quark_model>(q_sq_grid, z_grid, log_k_sq_grid_gauleg, y_grid, use_PauliVillars, debug);
+
+
+    return 0;
+
 }
