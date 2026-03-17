@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <optional>
 
 #include "Utils.hh"
 #include "types.hh"
@@ -40,21 +41,15 @@ class quark_model
 class quark_DSE
 {
   public:
-    // The model for A(x) given in the project description
     double A(const double& p_sq) const
     {
-      const double q = std::log(p_sq);
-      lInterpolator ip_a(quark_grid, quark_a);
-      return ip_a(q);
+      return (*ip_a)(std::log(p_sq));
     }
 
-    // The model for B(x) given in the project description
     double M(const double& p_sq) const
     {
       const double q = std::log(p_sq);
-      lInterpolator ip_a(quark_grid, quark_a);
-      lInterpolator ip_b(quark_grid, quark_b);
-      return ip_b(q)/ip_a(q);
+      return (*ip_b)(q) / (*ip_a)(q);
     }
 
     double z2() const
@@ -69,13 +64,20 @@ class quark_DSE
           parameters::physical::m_c,
           parameters::physical::m_c,
           parameters::physical::mu);
-      quark_a = quark_a_and_b[0];
-      quark_b = quark_a_and_b[1];
-      quark_grid = quark_a_and_b[2]; // Logarithmic grid in p^2
-      quark_z2 = quark_a_and_b[3][0];
+      quark_a    = quark_a_and_b[0];
+      quark_b    = quark_a_and_b[1];
+      quark_grid = quark_a_and_b[2]; // logarithmic grid in p²
+      quark_z2   = quark_a_and_b[3][0];
+      // Construct interpolators once, referencing the now-stable member vectors
+      ip_a.emplace(quark_grid, quark_a);
+      ip_b.emplace(quark_grid, quark_b);
     }
 
   private:
     vec_double quark_a, quark_b, quark_grid;
-    double quark_z2;
+    double quark_z2 = 0.;
+    // Interpolators stored as members so they are constructed only once.
+    // std::optional is used because lInterpolator holds references to the
+    // member vectors, which are not ready until the constructor body runs.
+    std::optional<lInterpolator<double, double>> ip_a, ip_b;
 };

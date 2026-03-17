@@ -39,7 +39,7 @@ double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx 
   return current_acc;
 }
 
-mat_cmplx average_array_full(const tens_cmplx &a, const unsigned z_0)
+mat_cmplx average_array_full(const tens_cmplx &a)
 {
   using namespace parameters::numerical;
   mat_cmplx a_z0(a.size(), vec_cmplx(a[0].size(), 0.0));
@@ -71,6 +71,8 @@ double a0 (const unsigned& i)
   return 0.;
 }
 
+// Initializes a_i with the bare vertex (inhomogeneous term a_i^0).
+// See Eq. (48) in the project description.
 template<typename Quark>
 void a_initialize(tens_cmplx &a, const Quark& quark)
 {
@@ -279,6 +281,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // Initialize a with bare vertex
     a_initialize(a, quark);
 
+    // Main self-consistent iteration: a → b → a until convergence.
+    // Implements the coupled system in Eq. (43) of the project description.
     std::cout << "  Starting iteration...\n";
     double current_acc = 1.0;
     unsigned current_step = 0;
@@ -287,7 +291,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       debug_out("\n    Started a step...\n", debug);
       
       // copy for checking the convergence
-      const auto a_old = average_array_full(a, z_0);
+      const auto a_old = average_array_full(a);
 
       debug_out("    Calculating b_i...", debug);
       b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);

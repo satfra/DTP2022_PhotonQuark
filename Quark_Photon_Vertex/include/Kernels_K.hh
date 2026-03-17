@@ -62,6 +62,9 @@ class K
       return true;
     }
 
+    // Returns K_{ij}(y, l², u, u', V, w, w', X).
+    // Implements the Bethe-Salpeter kernel in the 12-component basis.
+    // See Eqs. (51)-(52) in the project description.
     double get(const unsigned& i, const unsigned& j) const
     {
       if (i > 11 || j > 11)

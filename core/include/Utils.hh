@@ -43,13 +43,13 @@ std::vector<RF> linearMapTo(const std::vector<RF>& val, const RF& A, const RF& B
   return ret;
 }
 
-void debug_out(const std::string& msg, bool debug)
+inline void debug_out(const std::string& msg, bool debug)
 {
   if (debug)
     std::cout << msg << std::flush;
 }
 
-int locate(const std::vector<double> &xx, const double& x)
+inline int locate(const std::vector<double> &xx, const double& x)
 {
   /*
    * This function has been taken and slightly been modified from the

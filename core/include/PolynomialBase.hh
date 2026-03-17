@@ -14,21 +14,19 @@ class PolynomialBase
   protected:
     using LI = unsigned long long;
 
-    static constexpr RF __PRECISION = 1e-6;
-    static constexpr LI __MAXSTEPS = 1e+5;
+    static constexpr RF NEWTON_PRECISION = 1e-14;
+    static constexpr LI NEWTON_MAX_STEPS = 1e+5;
 
     RF getZero(const RF& x_0) const
     {
       RF error(1.);
       unsigned long stepnumber(0);
-      RF x_old = x_0;
       RF x_new = x_0;
-      while (stepnumber < 3 || (error > __PRECISION && stepnumber < __MAXSTEPS))
+      while (stepnumber < 3 || (error > NEWTON_PRECISION && stepnumber < NEWTON_MAX_STEPS))
       {
-        RF buf = x_new;
-        x_new = x_old - P(x_old) / dP(x_old);
-        x_old = buf;
-        error = std::abs(x_old - x_new);
+        const RF x_next = x_new - P(x_new) / dP(x_new);
+        error = std::abs(x_next - x_new);
+        x_new = x_next;
         stepnumber++;
       }
       return x_new;

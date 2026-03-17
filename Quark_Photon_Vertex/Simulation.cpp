@@ -12,13 +12,13 @@ int main(int argc, char *argv[])
   // get flags from shell
   std::string flags = argc > 1 ? argv[1] : "";
 
-  const bool debug = flags.find('v') < flags.length() ? true : false;
+  const bool debug = flags.find('v') != std::string::npos;
   if(debug) std::cout << "Showing debug output.\n";
 
-  const bool use_quark_DSE = flags.find('d') < flags.length() ? true : false;
+  const bool use_quark_DSE = flags.find('d') != std::string::npos;
   if(use_quark_DSE) std::cout << "Using the quark DSE.\n";
 
-  const bool use_PauliVillars = flags.find('p') < flags.length() ? true : false;
+  const bool use_PauliVillars = flags.find('p') != std::string::npos;
   if(use_PauliVillars) std::cout << "Using Pauli-Villars regularisation.\n";
 
   // avoid z == 0 in a grid, which would lead to division by zero.
@@ -33,14 +33,12 @@ int main(int argc, char *argv[])
 
   // create the q_grid, fill it and transform it to the correct range
   std::vector<double> q_grid(parameters::numerical::q_steps);
-
-  std::vector<double> q_gridtemp(parameters::numerical::q_steps);
-  std::iota(q_gridtemp.begin(), q_gridtemp.end(), 0);
-
-  q_gridtemp = linearMapTo(q_gridtemp, 0., double(q_grid.size()-1), std::log(parameters::numerical::min_q_sq),
-                                std::log(parameters::numerical::max_q_sq));
-  for (unsigned int i = 0; i < q_grid.size(); ++i)
-    q_grid[i] = std::exp(q_gridtemp[i]);
+  std::iota(q_grid.begin(), q_grid.end(), 0);
+  q_grid = linearMapTo(q_grid, 0., double(q_grid.size()-1),
+                       std::log(parameters::numerical::min_q_sq),
+                       std::log(parameters::numerical::max_q_sq));
+  std::transform(q_grid.begin(), q_grid.end(), q_grid.begin(),
+                 [](double x) { return std::exp(x); });
 
   // We use the zeroes of LegendrePolynomials for the z and y grids
   LegendrePolynomial<parameters::numerical::z_steps> lp_z;

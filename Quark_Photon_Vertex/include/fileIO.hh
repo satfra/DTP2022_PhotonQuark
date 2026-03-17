@@ -8,7 +8,7 @@
 #include "Utils.hh"
 #include "types.hh"
 
-void saveToFile(const std::vector<double>& data, const std::string& file)
+inline void saveToFile(const std::vector<double>& data, const std::string& file)
 {
   std::ofstream fileStream;
   fileStream.open(file);
@@ -17,7 +17,7 @@ void saveToFile(const std::vector<double>& data, const std::string& file)
   fileStream.close();
 }
 
-void emptyFile(const std::string& file, const std::string& header)
+inline void emptyFile(const std::string& file, const std::string& header)
 {
   std::ofstream fileStream;
   fileStream.open(file, std::ofstream::out | std::ofstream::trunc);

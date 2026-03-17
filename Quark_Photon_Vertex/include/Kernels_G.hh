@@ -21,6 +21,8 @@ class G
       return z * denom;
     }
 
+    // Computes the 12×12 tensor structure matrix G̃_{ij} before propagator factors.
+    // See Eqs. (56)-(57) in the project description.
     std::complex<double> kernel_G_snake(const uint8_t& i, const uint8_t& j, const double& k_sq, const double& z, const double& q_sq) const
     {
       if (i > 11 || j > 11)
@@ -122,7 +124,6 @@ class G
         default:
           return 0.0;
       }
-      return 0.0;
     }
 
     std::complex<double> kernel_G(const u_int8_t& i, const u_int8_t& j, const double& k_sq, const double& z, const double& q_sq) const
