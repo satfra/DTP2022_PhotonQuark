@@ -1,0 +1,7 @@
+# Benchmark baselines are platform-dependent (CPU rounding under -ffast-math)
+# and large (~14 MB per combo). Each developer captures their own via
+# `bash bench/run_bench.sh tests/bench_baseline`.
+*
+!.gitignore
+!.gitkeep
+!README.md

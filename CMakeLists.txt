@@ -12,6 +12,13 @@ endif()
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fopenmp -ffast-math")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
 
+# Reduced grid sizes for performance benchmarking. See bench/run_bench.sh.
+option(BENCHMARK_PROFILE "Compile with reduced grid sizes for benchmarking" OFF)
+if(BENCHMARK_PROFILE)
+  add_compile_definitions(BENCHMARK_PROFILE)
+  message(STATUS "BENCHMARK_PROFILE enabled — using parameters_bench.hh grid sizes")
+endif()
+
 # copy this to the project dir whenever a change to file tree structure has been made.
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
