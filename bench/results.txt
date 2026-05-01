@@ -7,6 +7,7 @@ tier1             91.2s        211.2s      216.9s      226.0s     745.3s   (Δ -
 tier2             89.7s        207.5s      221.5s      229.1s     747.7s   (Δ -0.7%)
 tier3             88.5s        206.5s      218.1s      226.1s     739.2s   (Δ -1.9%)
 tier4             70.2s         73.0s       72.4s       76.8s     292.4s   (Δ -61.2%)
+tier5             70.5s         73.6s       69.0s       75.9s     289.1s   (Δ -61.6%)
 
 Notes per tier:
 
@@ -18,6 +19,30 @@ tier1:     +-march=native -funroll-loops -DNDEBUG -flto -fopenmp linked
            Tier 5). Diff vs baseline: BSE outputs (fg, b) match within
            rtol=1e-6 atol=1e-7. WTI Delta_A files (w_file_idx_1,
            w_z0_file_idx_1) excluded — catastrophic cancellation.
+
+tier5:     Replace the two hottest nested-vector aliases with flat
+           row-major tensors. tens_cmplx (3D, used for a/b/w) becomes
+           Tensor3<complex>; ijtens2_double (6D, used for K_prime)
+           becomes Tensor6<double>. Each backed by a single contiguous
+           std::vector<T>, with lightweight Row1D/Row2D views so that
+           the existing a[i][k][z] syntax keeps working at every
+           non-hot call site (update_accuracy, average_array_*,
+           transform_a_to_fg, fileIO writers). lInterpolator2d is now
+           templated on the grid container so it accepts both nested
+           vectors and Row2D views; the grid is stored by value because
+           the views are pointer+strides rather than heap allocations.
+           a_iteration_step uses the new K_prime.slice2d(i,k,z,j) helper
+           to hand a 2-D view to the interpolator.
+           Bench impact at the bench grid is small (~1% on top of
+           Tier 4): the compiler had already been doing reasonable
+           things with the streaming write pattern in
+           precalculate_K_kernel, and the K' tensor is now write-once
+           per quadrature integral. The structural payoff is in
+           cleaner code and a much smaller working-set footprint
+           (single allocation per tensor instead of 50k+ heap objects).
+           Total runtime falls another ~3s vs Tier 4. Cumulative win
+           vs baseline: 61.6%. All 160 BSE outputs still match within
+           tolerance.
 
 tier4:     Hoist the two lInterpolator2d objects out of the qint2d
            integrand lambda in a_iteration_step (was reconstructed 1024×

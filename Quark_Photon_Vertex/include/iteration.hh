@@ -115,7 +115,7 @@ void a_iteration_step(const tens_cmplx &b,
           // strictly interior to the grid by construction (no clamp /
           // throw needed).
           const lInterpolator2d interp_b(k_grid, z_grid, b[j]);
-          const lInterpolator2d interp_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
+          const lInterpolator2d interp_K(k_grid, z_grid, K_prime.slice2d(i, k_idx, z_idx, j));
 
           auto f = [&](const double &k_prime_sq_log, const double &z_prime) {
             const double k_prime_sq = std::exp(k_prime_sq_log);
@@ -216,7 +216,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
                 return gl * k_kernel.get(i, j);
               };
 
-              K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] =
+              K_prime(i, k_idx, z_idx, j, k_prime_idx, z_prime_idx) =
                   qint1d(f, y_grid[0], y_grid[y_steps - 1]);
             }
           }
@@ -265,15 +265,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   using namespace parameters::numerical;
   const unsigned z_0 = z_grid.size() / 2;
 
-  const vec_cmplx temp0(z_steps, 0.0);
-  const mat_cmplx temp1(k_steps, temp0);
-
-  const vec_double temp0_d(z_steps, 0.0);
-  const mat_double temp1_d(k_steps, temp0_d);
-  const tens_double temp2_d(n_structs, temp1_d);
-  const tens2_double temp3_d(z_steps, temp2_d);
-  const jtens2_double temp4_d(k_steps, temp3_d);
-
   // Do some Legendre Magic
   Integrator1d qint1d;
   Integrator2d qint2d;
@@ -311,12 +302,12 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       << "Calculation for q^2 = " << q_sq << "\n";
 
     // define new a, b
-    tens_cmplx a(n_structs, temp1);
-    tens_cmplx b(n_structs, temp1);
+    tens_cmplx a(n_structs, k_steps, z_steps);
+    tens_cmplx b(n_structs, k_steps, z_steps);
 
     // Precalculate the K kernel
     std::cout << " Calculating K'_ij..." << std::flush;
-    ijtens2_double K_prime(n_structs, temp4_d);
+    ijtens2_double K_prime(n_structs, k_steps, z_steps, n_structs, k_steps, z_steps);
     precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid,
                           k_sq_table, k_table, s_z_table,
                           K_prime, quark, use_PauliVillars);
@@ -381,7 +372,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
   {
     const double &q_sq = q_grid[q_iter];
-    tens_cmplx w(3, temp1);
+    tens_cmplx w(3, k_steps, z_steps);
     for (unsigned k_idx = 0; k_idx < parameters::numerical::k_steps; ++k_idx)
     {
       for (unsigned z_idx = 0; z_idx < parameters::numerical::z_steps; ++z_idx)

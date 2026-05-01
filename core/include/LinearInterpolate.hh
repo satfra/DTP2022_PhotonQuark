@@ -43,14 +43,22 @@ class lInterpolator
     const RF& a,b;
 };
 
-template<typename _RF, typename _RF_f>
+// 2-D bilinear interpolator templated on the grid container. Accepts both
+// std::vector<std::vector<T>> and lightweight 2-D row views (e.g. the
+// Row2D returned by Tensor3/Tensor6 in types.hh). The grid is stored *by
+// value* so passing a temporary view from operator[] / slice2d remains
+// safe — these views are trivially copyable pointer+stride objects.
+template<typename _Range, typename _Grid>
 class lInterpolator2d
 {
   public:
-    using RF = _RF;
-    using RF_f = _RF_f;
-    using Range = std::vector<RF>;
-    using Grid = std::vector<std::vector<RF_f>>;
+    using Range = _Range;
+    using Grid = _Grid;
+    using RF = typename Range::value_type;
+    using GridRow = std::remove_cv_t<std::remove_reference_t<
+        decltype(std::declval<const Grid&>()[0])>>;
+    using RF_f = std::remove_cv_t<std::remove_reference_t<
+        decltype(std::declval<const GridRow&>()[0])>>;
 
     lInterpolator2d(const Range& _x1, const Range& _x2, const Grid& _f)
       : x1(_x1),x2(_x2), f(_f), a(x1.front()), b(x1.back()), c(x2.front()), d(x2.back()) {}
@@ -91,7 +99,8 @@ class lInterpolator2d
     }
 
   private:
-    const Range& x1, x2;
-    const Grid& f;
-    const RF& a, b, c, d;
+    const Range& x1;
+    const Range& x2;
+    Grid f;        // stored by value — safe for temporary view inputs
+    const RF a, b, c, d;
 };

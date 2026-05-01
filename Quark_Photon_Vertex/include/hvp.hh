@@ -32,8 +32,7 @@ namespace hvp
     if (!in)
       throw std::runtime_error("hvp: cannot open " + fname);
 
-    tens_cmplx out(q_steps,
-        mat_cmplx(k_steps, vec_cmplx(z_steps, 0.0)));
+    tens_cmplx out(q_steps, k_steps, z_steps);
 
     unsigned q_iter = 0;
     unsigned points_in_block = 0;
@@ -109,9 +108,11 @@ namespace hvp
     constexpr double pref_b10 = 4.0;
 
     constexpr unsigned q_ren = 0;
-    const mat_cmplx& b1_ren  = b1[q_ren];
-    const mat_cmplx& b7_ren  = b7[q_ren];
-    const mat_cmplx& b10_ren = b10[q_ren];
+    // b*[q_ren] returns a Tensor3 row view (ConstRow2D); take it by value
+    // since it's a small pointer+strides struct, not a heap-backed vector.
+    const auto b1_ren  = b1[q_ren];
+    const auto b7_ren  = b7[q_ren];
+    const auto b10_ren = b10[q_ren];
 
     #pragma omp parallel for
     for (unsigned q_iter = 0; q_iter < q_steps; ++q_iter)
