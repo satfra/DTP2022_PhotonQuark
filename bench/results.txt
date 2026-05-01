@@ -6,6 +6,7 @@ baseline (main)   92.5s        215.7s      221.2s      223.9s     753.3s
 tier1             91.2s        211.2s      216.9s      226.0s     745.3s   (Δ -1.1%)
 tier2             89.7s        207.5s      221.5s      229.1s     747.7s   (Δ -0.7%)
 tier3             88.5s        206.5s      218.1s      226.1s     739.2s   (Δ -1.9%)
+tier4             70.2s         73.0s       72.4s       76.8s     292.4s   (Δ -61.2%)
 
 Notes per tier:
 
@@ -17,6 +18,22 @@ tier1:     +-march=native -funroll-loops -DNDEBUG -flto -fopenmp linked
            Tier 5). Diff vs baseline: BSE outputs (fg, b) match within
            rtol=1e-6 atol=1e-7. WTI Delta_A files (w_file_idx_1,
            w_z0_file_idx_1) excluded — catastrophic cancellation.
+
+tier4:     Hoist the two lInterpolator2d objects out of the qint2d
+           integrand lambda in a_iteration_step (was reconstructed 1024×
+           per (i,k,z,j) tuple), and add lInterpolator2d::unchecked(y,z)
+           that skips the bounds tolerance / clamp / throw block. The
+           y/z arguments come from Gauss-Legendre / Chebyshev zeros that
+           are strictly interior to the grid by construction, so the
+           safety net was paranoia.
+           Massive jump — total runtime drops 61% versus the baseline.
+           The slow combos (nodse_pv, dse_*) collapse to roughly the
+           fast combo's wall time, suggesting that the 1024-rebinds-per-
+           integrand penalty was scaling with BSE iteration count and
+           was responsible for most of the variation between flag
+           combos. precalculate_K_kernel is now the dominant phase,
+           which is exactly Tier 5's target (flatten the 6-deep
+           ijtens2_double storage).
 
 tier3:     Refactor G constructor: compute kp_sq, km_sq, sigma_v, m_kp,
            m_km, sigma_m, delta_m, the ten g_xx tensor components once

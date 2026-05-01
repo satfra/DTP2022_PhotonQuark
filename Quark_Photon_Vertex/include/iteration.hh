@@ -107,15 +107,20 @@ void a_iteration_step(const tens_cmplx &b,
           if (K::isZeroIndex(i, j))
             continue;
 
-          // The function to integrate
+          // Hoist the two lInterpolator2d objects out of the integrand —
+          // qint2d evaluates the lambda y_steps² = 1024× per (i,k,z,j),
+          // and constructing them inside meant 1024 redundant 4-reference
+          // re-binds per call. Use the unchecked path because the y/z
+          // arguments come from Gauss-Legendre / Chebyshev zeros that are
+          // strictly interior to the grid by construction (no clamp /
+          // throw needed).
+          const lInterpolator2d interp_b(k_grid, z_grid, b[j]);
+          const lInterpolator2d interp_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
+
           auto f = [&](const double &k_prime_sq_log, const double &z_prime) {
             const double k_prime_sq = std::exp(k_prime_sq_log);
-            lInterpolator2d interpolate2d_b(k_grid, z_grid, b[j]);
-            const auto b_j = interpolate2d_b(k_prime_sq_log, z_prime);
-
-            lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
-            const auto K_prime_ij = interpolate2d_K(k_prime_sq_log, z_prime);
-
+            const auto b_j = interp_b.unchecked(k_prime_sq_log, z_prime);
+            const auto K_prime_ij = interp_K.unchecked(k_prime_sq_log, z_prime);
             // No √(1-z'²) here — it is the Chebyshev type 2 weight.
             return K_prime_ij * b_j * powr<2>(k_prime_sq);
           };

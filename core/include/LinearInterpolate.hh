@@ -69,7 +69,15 @@ class lInterpolator2d
         throw std::runtime_error("Interpolating outside bounds");
       const RF y = std::clamp(y_in, a, b);
       const RF z = std::clamp(z_in, c, d);
+      return unchecked(y, z);
+    }
 
+    // Hot-path variant that skips the tolerance check + clamp. Safe to call
+    // only when the caller guarantees y_in ∈ [a,b] and z_in ∈ [c,d] — e.g.
+    // when y_in/z_in come from Gauss-Legendre / Chebyshev zeros that are
+    // strictly interior by construction.
+    RF_f unchecked(const RF& y, const RF& z) const
+    {
       const auto idx1 = locate(x1, y);
       const auto idx2 = locate(x2, z);
 
