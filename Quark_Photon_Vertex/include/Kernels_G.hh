@@ -134,7 +134,7 @@ class G
       const double sig_kp = sigma_v(kp_sq);
       const double sig_km = sigma_v(km_sq);
 
-      return sig_kp * sig_km * kernel_G_snake(i, j, k_sq, z, q_sq);
+      return - sig_kp * sig_km * kernel_G_snake(i, j, k_sq, z, q_sq);
     }
 
     using submatrixrow = std::vector<std::complex<double>>;

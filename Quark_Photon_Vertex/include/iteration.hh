@@ -256,6 +256,7 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   // prepare output files
   emptyIdxFile<12>("fg_file", "#q_sq i k_sq z Re(fg) Im(fg)");
   emptyIdxFile<12>("fg_z0_file", "#q_sq i k_sq Re(fg) Im(fg)");
+  emptyIdxFile<12>("b_file", "#q_sq i k_sq z Re(b) Im(b)");
   emptyIdxFile<3>("w_file", "#q_sq i k_sq z Re(w) Im(w)");
   emptyIdxFile<3>("w_z0_file", "#q_sq i k_sq Re(w) Im(w)");
 
@@ -311,6 +312,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       std::cout << "  ! Did not converge !\n";
 
     std::cout << " Saving results..." << std::flush;
+    // resync b with the converged a, since the last loop step recomputes a
+    // from the previous-iteration b. With this call b = G_kernel · a holds for
+    // the converged a, which is what the HVP loop expects (b ≡ S·Γ·S).
+    b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);
+    saveToFile_withGrids<n_structs>(b, "b_file", q_sq, k_grid, z_grid);
     // transform to g,f (almost in place!)
     transform_a_to_fg(a, q_sq, k_grid, z_grid);
     const auto& fg = a;

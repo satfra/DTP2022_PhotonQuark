@@ -23,12 +23,12 @@ namespace basistransform
 
   inline std::complex<double> f2(const double Q, const double s, const double z,const double k, const vec_cmplx& a)
   {
-    return II / (powr<3>(Q)*powr<2>(k*s)) * (a[1] / std::sqrt(2.) - a[7] + s/z * (a[2]/std::sqrt(2.) + a[11]));
+    return - II / (powr<3>(Q)*powr<2>(k*s)) * (a[1] / std::sqrt(2.) - a[7] + s/z * (a[2]/std::sqrt(2.) + a[11]));
   }
 
   inline std::complex<double> f3(const double Q, const double s, const double z,const double k, const vec_cmplx& a)
   {
-    return - II / (std::sqrt(2.) * Q) * (-a[1] + z/s * a[2] );
+    return II / (std::sqrt(2.) * Q) * (-a[1] + z/s * a[2] );
   }
 
   inline std::complex<double> f4(const double Q, const double s, const double z, const double k, const vec_cmplx& a)
@@ -53,7 +53,7 @@ namespace basistransform
 
   inline std::complex<double> f8(const double Q, const double s, const double z, const double k, const vec_cmplx& a)
   {
-    return - II  / ( Q *powr<2>(k*s) ) * (a[1] / sqrt(2.) - a[7]);
+    return II  / ( Q *powr<2>(k*s) ) * (a[1] / sqrt(2.) - a[7]);
   }
 
   inline std::complex<double> g1(const double Q, const double s, const double z,const double k, const vec_cmplx& a)
@@ -68,11 +68,11 @@ namespace basistransform
 
   inline std::complex<double> g3(const double Q, const double s, const double z, const double k, const vec_cmplx& a)
   {
-    return II/(k*z) * a[8];
+    return - II/(k*z) * a[8];
   }
 
   inline std::complex<double> g4(const double Q, const double s, const double z, const double k, const vec_cmplx& a)
   {
-    return II/(powr<2>(k)*z *s) * a[11];
+    return II/(powr<2>(k)*Q*z *s) * a[11];
   }
 }

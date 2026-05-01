@@ -5,6 +5,7 @@
 #include "LegendrePolynomials.hh"
 #include "quark_model_functions.hh"
 #include "iteration.hh"
+#include "hvp.hh"
 #include "parameters.hh"
 
 int main(int argc, char *argv[]) 
@@ -20,6 +21,9 @@ int main(int argc, char *argv[])
 
   const bool use_PauliVillars = flags.find('p') != std::string::npos;
   if(use_PauliVillars) std::cout << "Using Pauli-Villars regularisation.\n";
+
+  const bool calculate_hvp = flags.find('h') != std::string::npos;
+  if(calculate_hvp) std::cout << "Calculating the hadronic vacuum polarisation after the QPV.\n";
 
   // avoid z == 0 in a grid, which would lead to division by zero.
   static_assert(parameters::numerical::z_steps % 2 == 0);
@@ -51,6 +55,9 @@ int main(int argc, char *argv[])
     iterate_a_and_b<quark_DSE>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
   else
     iterate_a_and_b<quark_model>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
+
+  if(calculate_hvp)
+    hvp::hvp_driver(q_grid, k_grid, z_grid);
 
   return 0;
 }
