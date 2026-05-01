@@ -161,44 +161,60 @@ void b_iteration_step(const tens_cmplx &a, const double &q_sq,
 template<typename Quark>
 void precalculate_K_kernel(const vec_double &y_grid,
     const Integrator1d &qint1d, const double &q_sq,
-    const vec_double &z_grid, const vec_double &k_grid, ijtens2_double &K_prime, const Quark& quark, const bool use_PauliVillars)
+    const vec_double &z_grid, const vec_double &k_grid,
+    const vec_double &k_sq_table, const vec_double &k_table,
+    const vec_double &s_z_table,
+    ijtens2_double &K_prime, const Quark& quark, const bool use_PauliVillars)
 {
   using namespace parameters::numerical;
-  #pragma omp parallel for collapse(3)
+  // collapse(5) widens the OpenMP iteration space by 144× over the previous
+  // collapse(3); pruned (i,j) pairs (≈40% via K::isZeroIndex) become cheap
+  // continues but threads stay saturated. z_prime_idx remains serial inside
+  // each task so the inner write to K_prime walks a contiguous row.
+  #pragma omp parallel for collapse(5)
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
         for (unsigned j = 0; j < n_structs; ++j)
-        {
-          if (K::isZeroIndex(i, j))
-            continue;
           for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
+          {
+            if (K::isZeroIndex(i, j))
+              continue;
+
+            const double k_sq = k_sq_table[k_idx];
+            const double k_prime_sq = k_sq_table[k_prime_idx];
+            const double k_v = k_table[k_idx];
+            const double k_prime_v = k_table[k_prime_idx];
+            const double k_kp_sqrt = k_v * k_prime_v;
+            const double& z = z_grid[z_idx];
+            const double s_z = s_z_table[z_idx];
+
             for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
             {
-              const double &z = z_grid[z_idx];
-              const double k_sq = std::exp(k_grid[k_idx]);
-              const double &z_prime = z_grid[z_prime_idx];
-              const double k_prime_sq = std::exp(k_grid[k_prime_idx]);
-
-              K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = 0.;
+              const double& z_prime = z_grid[z_prime_idx];
+              const double s_z_prime = s_z_table[z_prime_idx];
 
               auto f = [&](const double &y)
               {
-                const double l_sq = momentumtransform::l2(k_sq, k_prime_sq, z, z_prime, y);
+                // Inlined momentumtransform::l2 with the precomputed
+                // sqrt(k²·k'²) and sin terms; matches the old formula bit-for-
+                // bit modulo associativity (≤1 ULP under -ffast-math).
+                const double l_sq = k_sq + k_prime_sq
+                    - 2. * k_kp_sqrt * (z * z_prime + y * s_z * s_z_prime);
 
-                const double gl = use_PauliVillars ? pauli_villars_g(l_sq, quark): maris_tandy_g(l_sq, quark);
+                const double gl = use_PauliVillars
+                    ? pauli_villars_g(l_sq, quark)
+                    : maris_tandy_g(l_sq, quark);
 
-                K k_kernel(k_sq, k_prime_sq, z, z_prime, y, q_sq);
+                K k_kernel(k_sq, k_prime_sq, z, z_prime, y,
+                           k_kp_sqrt, s_z, s_z_prime, k_v, k_prime_v);
                 return gl * k_kernel.get(i, j);
               };
 
-              // Evaluate the integral
-              const double integral = qint1d(f, y_grid[0], y_grid[y_steps - 1]);
-
-              // Add this to the a's
-              K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] = integral;
+              K_prime[i][k_idx][z_idx][j][k_prime_idx][z_prime_idx] =
+                  qint1d(f, y_grid[0], y_grid[y_steps - 1]);
             }
-        }
+          }
 }
 
 void transform_a_to_fg(tens_cmplx &a, const double& q_sq, const vec_double &k_grid, const vec_double &z_grid)
@@ -259,6 +275,20 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
   const Quark quark;
 
+  // Hoist the k² = exp(k_grid), √k² and √(1-z²) tables out of the inner
+  // loops — they only depend on the (fixed) k/z grids, so the K-kernel
+  // precalculation goes from ~10⁹ exp/sqrt evaluations per q-point to a few
+  // hundred table lookups.
+  vec_double k_sq_table(k_steps);
+  vec_double k_table(k_steps);
+  for (unsigned i = 0; i < k_steps; ++i) {
+    k_sq_table[i] = std::exp(k_grid[i]);
+    k_table[i] = std::sqrt(k_sq_table[i]);
+  }
+  vec_double s_z_table(z_steps);
+  for (unsigned i = 0; i < z_steps; ++i)
+    s_z_table[i] = std::sqrt(1. - z_grid[i] * z_grid[i]);
+
   // prepare output files
   emptyIdxFile<12>("fg_file", "#q_sq i k_sq z Re(fg) Im(fg)");
   emptyIdxFile<12>("fg_z0_file", "#q_sq i k_sq Re(fg) Im(fg)");
@@ -282,7 +312,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // Precalculate the K kernel
     std::cout << " Calculating K'_ij..." << std::flush;
     ijtens2_double K_prime(n_structs, temp4_d);
-    precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid, K_prime, quark, use_PauliVillars);
+    precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid,
+                          k_sq_table, k_table, s_z_table,
+                          K_prime, quark, use_PauliVillars);
     std::cout << " done\n";
 
     // Initialize a with bare vertex

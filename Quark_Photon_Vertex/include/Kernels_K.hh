@@ -1,6 +1,8 @@
 #pragma once
 
+#include <array>
 #include <cmath>
+#include <stdexcept>
 #include <vector>
 #include <momentumtransform.hh>
 
@@ -9,57 +11,97 @@ class K
   private:
     double y, l2, u, uprime, V, w, wprime, X;
 
+    // 12×12 sparsity mask — true means K_{ij}(...) is identically zero in the
+    // basis. Built once at compile time so the BSE hot loop does a flat table
+    // lookup instead of walking the explicit if-chain.
+    static constexpr std::array<bool, 144> kZeroMask = []() {
+      std::array<bool, 144> m{};
+      for (unsigned i = 0; i < 12; ++i) {
+        for (unsigned j = 0; j < 12; ++j) {
+          bool zero;
+          if ((i == 0 && j == 1) || (i == 1 && j == 0) ||
+              (i == 2 && j == 3) || (i == 3 && j == 2) ||
+              (i == 3 && j == 4) || (i == 4 && j == 3) ||
+              (i == 4 && j == 5) || (i == 5 && j == 4) ||
+              (i == 6 && j == 7) || (i == 7 && j == 6) ||
+              (i == 7 && j == 8) || (i == 8 && j == 7) ||
+              (i == 8 && j == 9) || (i == 9 && j == 8) ||
+              (i == 11 && j == 10) || (i == 10 && j == 11) ||
+              (i == 0 && j == 2) || (i == 2 && j == 0) ||
+              (i == 0 && j == 3) || (i == 3 && j == 0) ||
+              (i == 0 && j == 4) || (i == 4 && j == 0) ||
+              (i == 0 && j == 7) || (i == 7 && j == 0) ||
+              (i == 1 && j == 3) || (i == 3 && j == 1) ||
+              (i == 1 && j == 4) || (i == 4 && j == 1) ||
+              (i == 1 && j == 5) || (i == 5 && j == 1) ||
+              (i == 1 && j == 6) || (i == 6 && j == 1) ||
+              (i == 2 && j == 4) || (i == 4 && j == 2) ||
+              (i == 2 && j == 5) || (i == 5 && j == 2) ||
+              (i == 2 && j == 6) || (i == 6 && j == 2) ||
+              (i == 3 && j == 5) || (i == 5 && j == 3) ||
+              (i == 3 && j == 6) || (i == 6 && j == 3) ||
+              (i == 3 && j == 7) || (i == 7 && j == 3) ||
+              (i == 4 && j == 6) || (i == 6 && j == 4) ||
+              (i == 4 && j == 7) || (i == 7 && j == 4) ||
+              (i == 5 && j == 7) || (i == 7 && j == 5) ||
+              (i == 8 && j == 10) || (i == 10 && j == 8) ||
+              (i == 8 && j == 11) || (i == 11 && j == 8) ||
+              (i == 9 && j == 11) || (i == 11 && j == 9))
+            zero = true;
+          else if (i < 8 && j < 8)
+            zero = false;
+          else if (i >= 8 && j >= 8)
+            zero = false;
+          else
+            zero = true;
+          m[i * 12 + j] = zero;
+        }
+      }
+      return m;
+    }();
+
   public:
-    K(const double& k_sq, const double& k_sq_prime, const double& z, const double& z_prime, const double& y_, const double& q_sq)
+    // Hot-path constructor used by precalculate_K_kernel. Caller hoists the
+    // y-independent quantities sqrt(k²·k'²), sqrt(1-z²), sqrt(1-z'²),
+    // sqrt(k²), sqrt(k'²) so the y-quadrature lambda runs them once across
+    // the entire grid instead of once per integrand evaluation.
+    K(const double& k_sq, const double& k_sq_prime,
+      const double& z, const double& z_prime,
+      const double& y_,
+      const double& k_kp_sqrt,
+      const double& s_z, const double& s_z_prime,
+      const double& k_v, const double& k_prime_v)
     {
       y = y_;
-      l2 = momentumtransform::l2(k_sq, k_sq_prime, z, z_prime, y);
-      u = momentumtransform::u(k_sq, z);
-      uprime = momentumtransform::u(k_sq_prime, z_prime);
-      V = momentumtransform::V(k_sq, k_sq_prime, z, z_prime, l2);
-      w = momentumtransform::w(u, l2);
-      wprime = momentumtransform::w(uprime, l2);
-      X = momentumtransform::X(u, uprime, l2);
+      l2 = k_sq + k_sq_prime
+            - 2. * k_kp_sqrt * (z * z_prime + y * s_z * s_z_prime);
+      u = k_v * s_z;
+      uprime = k_prime_v * s_z_prime;
+      const double inv_l2 = 1.0 / l2;
+      V = (k_v * z - k_prime_v * z_prime) * inv_l2;
+      w = u * u * inv_l2;
+      wprime = uprime * uprime * inv_l2;
+      X = u * uprime * inv_l2;
     }
+
+    // Backwards-compatible constructor — delegates to the hot-path version
+    // after computing the precomputed quantities itself. q_sq is unused but
+    // retained for API stability.
+    K(const double& k_sq, const double& k_sq_prime, const double& z,
+      const double& z_prime, const double& y_, const double& /*q_sq*/)
+        : K(k_sq, k_sq_prime, z, z_prime, y_,
+            std::sqrt(k_sq * k_sq_prime),
+            std::sqrt(1. - z * z),
+            std::sqrt(1. - z_prime * z_prime),
+            std::sqrt(k_sq),
+            std::sqrt(k_sq_prime))
+    {}
 
     static bool isZeroIndex(const unsigned& i, const unsigned& j)
     {
       if (i > 11 || j > 11)
         throw std::runtime_error("Function get(..) out of range in Kernels_K");
-      else if ((i == 0 && j == 1) || (i == 1 && j == 0) ||
-          (i == 2 && j == 3) || (i == 3 && j == 2) ||
-          (i == 3 && j == 4) || (i == 4 && j == 3) ||
-          (i == 4 && j == 5) || (i == 5 && j == 4) ||
-          (i == 6 && j == 7) || (i == 7 && j == 6) ||
-          (i == 7 && j == 8) || (i == 8 && j == 7) ||
-          (i == 8 && j == 9) || (i == 9 && j == 8) ||
-          (i == 11 && j == 10) || (i == 10 && j == 11) ||
-          (i == 0 && j == 2) || (i == 2 && j == 0) ||
-          (i == 0 && j == 3) || (i == 3 && j == 0) ||
-          (i == 0 && j == 4) || (i == 4 && j == 0) ||
-          (i == 0 && j == 7) || (i == 7 && j == 0) ||
-          (i == 1 && j == 3) || (i == 3 && j == 1) ||
-          (i == 1 && j == 4) || (i == 4 && j == 1) ||
-          (i == 1 && j == 5) || (i == 5 && j == 1) ||
-          (i == 1 && j == 6) || (i == 6 && j == 1) ||
-          (i == 2 && j == 4) || (i == 4 && j == 2) ||
-          (i == 2 && j == 5) || (i == 5 && j == 2) ||
-          (i == 2 && j == 6) || (i == 6 && j == 2) ||
-          (i == 3 && j == 5) || (i == 5 && j == 3) ||
-          (i == 3 && j == 6) || (i == 6 && j == 3) ||
-          (i == 3 && j == 7) || (i == 7 && j == 3) ||
-          (i == 4 && j == 6) || (i == 6 && j == 4) ||
-          (i == 4 && j == 7) || (i == 7 && j == 4) ||
-          (i == 5 && j == 7) || (i == 7 && j == 5) ||
-          (i == 8 && j == 10) || (i == 10 && j == 8) ||
-          (i == 8 && j == 11) || (i == 11 && j == 8) ||
-          (i == 9 && j == 11) || (i == 11 && j == 9))
-          return true;
-      else if (i < 8 && j < 8)
-        return false;
-      else if (i >= 8 && j >= 8)
-        return false;
-      return true;
+      return kZeroMask[i * 12 + j];
     }
 
     // Returns K_{ij}(y, l², u, u', V, w, w', X).
