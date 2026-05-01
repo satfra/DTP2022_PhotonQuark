@@ -14,6 +14,7 @@
 #include "parameters.hh"
 #include "QuadratureIntegral.hh"
 #include "LegendrePolynomials.hh"
+#include "ChebyshevPolynomial2.hh"
 #include "LinearInterpolate.hh"
 
 namespace hvp
@@ -73,9 +74,11 @@ namespace hvp
     return out;
   }
 
+  // z dimension uses Gauss–Chebyshev type 2 so the √(1−z²) Jacobian of
+  // the 4D loop measure is absorbed into the quadrature weights.
   using HvpIntegrator = qIntegral2d<
       LegendrePolynomial<parameters::numerical::k_steps>,
-      LegendrePolynomial<parameters::numerical::z_steps>>;
+      ChebyshevPolynomial2<parameters::numerical::z_steps>>;
 
   // Computes the renormalised hadronic-vacuum-polarisation loop on the
   // existing q_grid. The b's already contain the quark propagators
@@ -132,20 +135,21 @@ namespace hvp
             pref_b7  * ip_b7_ren (log_k_sq, z) +
             pref_b10 * ip_b10_ren(log_k_sq, z);
 
+        (void)z;  // z enters only through the trace; no explicit Jacobian.
         const double k_sq = std::exp(log_k_sq);
         // 4D Euclidean measure with the log-k² Jacobian:
         //   d⁴k/(2π)⁴ · f  =  int_factors · 2π · √(1−z²) · k² · d(k²) dz · f
         //                  =  int_factors · 2π · √(1−z²) · (k²)² · d(log k²) dz · f
-        const double measure = int_factors * 2. * M_PI
-                             * std::sqrt(1.0 - powr<2>(z))
-                             * powr<2>(k_sq);
+        // The √(1−z²) factor is the Chebyshev type 2 weight (see
+        // HvpIntegrator above), so it must NOT be multiplied in here.
+        const double measure = int_factors * 2. * M_PI * powr<2>(k_sq);
 
         return measure * (trace_p - trace_ren);
       };
 
       const std::complex<double> integral = qint2d(integrand,
           k_grid.front(), k_grid.back(),
-          z_grid.front(), z_grid.back());
+          -1.0, 1.0);
 
       pi_values[q_iter] = integral.real();
     }

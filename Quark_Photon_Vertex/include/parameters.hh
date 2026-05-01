@@ -7,13 +7,13 @@
 namespace parameters {
 namespace numerical {
 // The number of steps in the k/k' grid
-constexpr unsigned k_steps = 128;
+constexpr unsigned k_steps = 32;        // smoke-test value; production = 128
 // The number of steps in the z/z' grid
-constexpr unsigned z_steps = 32;
+constexpr unsigned z_steps = 16;        // smoke-test value; production = 32
 // The number of steps in the y grid
-constexpr unsigned y_steps = 32;
+constexpr unsigned y_steps = 16;        // smoke-test value; production = 32
 // The number of steps in the Q grid
-constexpr unsigned q_steps = 32;
+constexpr unsigned q_steps = 8;         // smoke-test value; production = 32
 
 constexpr double min_q_sq = 1e-5;
 constexpr double max_q_sq = 1;
@@ -24,8 +24,8 @@ constexpr double target_acc = 1e-5;
 constexpr unsigned max_steps = 100;
 
 // Grid for the quark propagator dse
-constexpr unsigned quark_dse_steps_q = 1000;
-constexpr unsigned quark_dse_steps_z = 256;
+constexpr unsigned quark_dse_steps_q = 200;   // smoke-test value; production = 1000
+constexpr unsigned quark_dse_steps_z = 64;    // smoke-test value; production = 256
 constexpr unsigned quark_dse_max_steps = 200;
 constexpr double quark_dse_acc = 1e-8;
 

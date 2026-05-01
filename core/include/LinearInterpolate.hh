@@ -1,5 +1,9 @@
 #pragma once
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
 #include <vector>
 
 #include "Utils.hh"
@@ -16,10 +20,16 @@ class lInterpolator
     lInterpolator(const Range& _x, const Grid& _f)
       : x(_x), f(_f), a(x.front()), b(x.back()) {}
 
-    RF_f operator()(const RF& y) const
+    RF_f operator()(const RF& y_in) const
     {
-      if(y > b || y < a)
+      // Tolerate sub-ULP excursions past the grid endpoints (a few bits
+      // of roundoff are unavoidable when the caller computes the query
+      // point via floating-point arithmetic, especially under -ffast-math).
+      const RF tol = 16. * std::numeric_limits<RF>::epsilon()
+                   * std::max<RF>(std::abs(a), std::abs(b));
+      if(y_in > b + tol || y_in < a - tol)
         throw std::runtime_error("Interpolating outside bounds");
+      const RF y = std::clamp(y_in, a, b);
 
       const auto idx = locate(x, y);
 
@@ -45,10 +55,20 @@ class lInterpolator2d
     lInterpolator2d(const Range& _x1, const Range& _x2, const Grid& _f)
       : x1(_x1),x2(_x2), f(_f), a(x1.front()), b(x1.back()), c(x2.front()), d(x2.back()) {}
 
-    RF_f operator()(const RF& y,const RF& z) const
+    RF_f operator()(const RF& y_in,const RF& z_in) const
     {
-      if (y > b || y < a || z > d || z < c)
+      // Tolerate sub-ULP excursions past the grid endpoints (-ffast-math
+      // and identical-formula-but-different-translation-unit can produce
+      // bit-different results for the same mathematical value).
+      const RF tol_y = 16. * std::numeric_limits<RF>::epsilon()
+                     * std::max<RF>(std::abs(a), std::abs(b));
+      const RF tol_z = 16. * std::numeric_limits<RF>::epsilon()
+                     * std::max<RF>(std::abs(c), std::abs(d));
+      if (y_in > b + tol_y || y_in < a - tol_y
+       || z_in > d + tol_z || z_in < c - tol_z)
         throw std::runtime_error("Interpolating outside bounds");
+      const RF y = std::clamp(y_in, a, b);
+      const RF z = std::clamp(z_in, c, d);
 
       const auto idx1 = locate(x1, y);
       const auto idx2 = locate(x2, z);

@@ -3,5 +3,5 @@ bin/
 cmake-build-debug/
 .kdev4/
 *.kdev4
-build/
+build*
 alternative_impl/ 

@@ -7,6 +7,7 @@
 #include "Utils.hh"
 #include "types.hh"
 #include "QuadratureIntegral.hh"
+#include "ChebyshevPolynomial2.hh"
 #include "fileIO.hh"
 
 #include "parameters.hh"
@@ -18,7 +19,10 @@
 #include "WTI.hh"
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
-using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, LegendrePolynomial<parameters::numerical::z_steps>>;
+// z dimension uses Gauss–Chebyshev type 2: the √(1−z²) Jacobian of the
+// 4D loop measure is absorbed into the quadrature weights, so it must
+// NOT appear in the integrand and the z-bounds must be (-1, 1).
+using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, ChebyshevPolynomial2<parameters::numerical::z_steps>>;
 
 double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx &a_old)
 {
@@ -112,13 +116,15 @@ void a_iteration_step(const tens_cmplx &b,
             lInterpolator2d interpolate2d_K(k_grid, z_grid, K_prime[i][k_idx][z_idx][j]);
             const auto K_prime_ij = interpolate2d_K(k_prime_sq_log, z_prime);
 
-            return K_prime_ij * b_j * std::sqrt(1. - powr<2>(z_prime)) * powr<2>(k_prime_sq);
+            // No √(1-z'²) here — it is the Chebyshev type 2 weight.
+            return K_prime_ij * b_j * powr<2>(k_prime_sq);
           };
 
-          // Evaluate the integral
-          const std::complex<double> integral = qint2d(f, 
-              k_grid[0], k_grid[k_steps - 1], 
-              z_grid[0], z_grid[z_steps - 1]);
+          // Evaluate the integral. z bounds are the natural Chebyshev
+          // domain (-1, 1); k bounds remain the log-k² grid endpoints.
+          const std::complex<double> integral = qint2d(f,
+              k_grid[0], k_grid[k_steps - 1],
+              -1.0, 1.0);
 
           // Add this to the a's
           a[i][k_idx][z_idx] += integral * 2.0 * M_PI * int_factors;

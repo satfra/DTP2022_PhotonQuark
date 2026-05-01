@@ -7,6 +7,7 @@
 #include "types.hh"
 #include "maris_tandy.hh"
 #include <LegendrePolynomials.hh>
+#include <ChebyshevPolynomial2.hh>
 
 // ---------------------------------------------------------------------------
 // Angular integration matrix: pre-computes the combined momentum+angle
@@ -38,16 +39,17 @@ inline tens_double init_brl_angular_matrix(double mu,
             double sb = 0.0;
 
             for (unsigned int ang_i = 0; ang_i < parameters::numerical::quark_dse_steps_z; ++ang_i) {
-                const double psi = dse_absci_ang[ang_i];
-                const double z = cos(psi);
-                const double sin2psi = 1.0 - z * z; // sin²(ψ) = angular_function(ψ)
+                // dse_absci_ang now holds z = cos(ψ) directly (Chebyshev
+                // type 2 zeros). The sin²(ψ) = 1 − z² Jacobian is absorbed
+                // into dse_weights_ang.
+                const double z = dse_absci_ang[ang_i];
                 const double pq = p * q * z;
                 const double kk = p * p + q * q - 2.0 * p * q * z;
 
                 const double mt = maris_tandy_alpha(kk);
 
                 sa += dse_weights_ang[ang_i] *
-                        dse_weights_q[qidx] * sin2psi *
+                        dse_weights_q[qidx] *
                         (2.0 * (M_1_PI * M_1_PI) / (3.0 * p * p)) *
                         q * q * q * q * (1.0 / kk) *
                         (mt * (
@@ -56,7 +58,7 @@ inline tens_double init_brl_angular_matrix(double mu,
                         );
 
                 sb += dse_weights_ang[ang_i] *
-                        dse_weights_q[qidx] * sin2psi *
+                        dse_weights_q[qidx] *
                         (2.0 * M_1_PI * M_1_PI) * (1.0 / 3.0) *
                         q * q * q * q * (1.0 / kk) *
                         (mt * 3.0);
@@ -129,11 +131,13 @@ inline mat_double quark_iterate_dressing_functions(double a0, double b0, double 
     vec_double dse_weights_q = lp_q.weights();
     for (auto& w : dse_weights_q) w *= (q_hi - q_lo) / 2.;
 
-    // Build GL angular grid on [0, π]
-    LegendrePolynomial<parameters::numerical::quark_dse_steps_z> lp_z;
-    const vec_double dse_absci_z = linearMapTo(lp_z.zeroes(), -1., 1., 0., M_PI);
-    vec_double dse_weights_z = lp_z.weights();
-    for (auto& w : dse_weights_z) w *= M_PI / 2.;
+    // Angular grid on z = cos(ψ) ∈ [-1, 1]. Substitution
+    //   ∫_0^π F(ψ) sin²(ψ) dψ = ∫_{-1}^{1} F(arccos z) √(1−z²) dz
+    // makes Gauss–Chebyshev type 2 the natural quadrature: the sin² (= √(1−z²))
+    // weight is built into dse_weights_z, and dse_absci_z stores z directly.
+    ChebyshevPolynomial2<parameters::numerical::quark_dse_steps_z> cp_z;
+    const vec_double dse_absci_z = cp_z.zeroes();
+    const vec_double dse_weights_z = cp_z.weights();
 
 #pragma omp parallel for
     for (unsigned int i = 0; i < parameters::numerical::quark_dse_steps_q; ++i) {

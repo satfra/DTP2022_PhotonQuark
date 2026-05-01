@@ -32,6 +32,10 @@ bool isEqual(T a, T b, T eps_ = std::numeric_limits<T>::epsilon())
   template<typename RF>
 RF linearMapTo(const RF& val, const RF& A, const RF& B, const RF& a, const RF& b)
 {
+  // Identity short-circuit: when source and target intervals coincide, return
+  // the input bit-exact. The arithmetic form below has 1-ULP roundoff which
+  // can push interpolation queries marginally outside their grid bounds.
+  if (A == a && B == b) return val;
   return (val - A)*(b-a)/(B-A) + a;
 }
 

@@ -3,6 +3,7 @@
 
 #include "Utils.hh"
 #include "LegendrePolynomials.hh"
+#include "ChebyshevPolynomial2.hh"
 #include "quark_model_functions.hh"
 #include "iteration.hh"
 #include "hvp.hh"
@@ -44,10 +45,12 @@ int main(int argc, char *argv[])
   std::transform(q_grid.begin(), q_grid.end(), q_grid.begin(),
                  [](double x) { return std::exp(x); });
 
-  // We use the zeroes of LegendrePolynomials for the z and y grids
-  LegendrePolynomial<parameters::numerical::z_steps> lp_z;
+  // y is a uniform-weight angular integration → Legendre.
+  // z carries a √(1−z²) Jacobian from the 4D measure → Chebyshev type 2,
+  // which absorbs that weight by construction.
+  ChebyshevPolynomial2<parameters::numerical::z_steps> cp_z;
   LegendrePolynomial<parameters::numerical::y_steps> lp_y;
-  const std::vector<double> z_grid = lp_z.zeroes();
+  const std::vector<double> z_grid = cp_z.zeroes();
   const std::vector<double> y_grid = lp_y.zeroes();
 
   // Start the program
