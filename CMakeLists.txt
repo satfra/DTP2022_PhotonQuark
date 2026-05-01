@@ -9,8 +9,24 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fopenmp -ffast-math")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -Wall -fopenmp -ffast-math -march=native -funroll-loops -DNDEBUG")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall")
+
+# Enable link-time / interprocedural optimisation for Release if the toolchain
+# supports it. Lets the linker inline across translation units, which matters
+# here because most hot code lives in headers anyway but the few .cpp boundaries
+# (Simulation.cpp ↔ tests) still benefit.
+include(CheckIPOSupported)
+check_ipo_supported(RESULT _ipo_ok OUTPUT _ipo_err)
+if(_ipo_ok)
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+  message(STATUS "IPO/LTO enabled for Release builds")
+else()
+  message(STATUS "IPO/LTO not supported: ${_ipo_err}")
+endif()
+
+# Locate OpenMP centrally so subprojects can link OpenMP::OpenMP_CXX directly.
+find_package(OpenMP REQUIRED)
 
 # Reduced grid sizes for performance benchmarking. See bench/run_bench.sh.
 option(BENCHMARK_PROFILE "Compile with reduced grid sizes for benchmarking" OFF)

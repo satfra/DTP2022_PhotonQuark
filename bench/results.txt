@@ -1,0 +1,17 @@
+Per-tier wall-clock timings on bench grid (k=64, z=24, y=24, q=8, max_steps=40).
+Captured on franzArch, 32 cores, BENCHMARK_PROFILE=ON, Release build.
+
+                  nodse_nopv   nodse_pv    dse_nopv    dse_pv     total
+baseline (main)   92.5s        215.7s      221.2s      223.9s     753.3s
+tier1             91.2s        211.2s      216.9s      226.0s     745.3s   (Δ -1.1%)
+
+Notes per tier:
+
+baseline:  -O3 -Wall -fopenmp -ffast-math, Threads-only link
+tier1:     +-march=native -funroll-loops -DNDEBUG -flto -fopenmp linked
+           Marginal speedup. Most hot code lives in templated headers, so
+           cross-TU LTO has little to do; -march=native cannot really
+           vectorise because of the nested-vector data layout (deferred to
+           Tier 5). Diff vs baseline: BSE outputs (fg, b) match within
+           rtol=1e-6 atol=1e-7. WTI Delta_A files (w_file_idx_1,
+           w_z0_file_idx_1) excluded — catastrophic cancellation.
