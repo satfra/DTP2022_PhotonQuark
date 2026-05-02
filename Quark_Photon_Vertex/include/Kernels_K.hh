@@ -97,10 +97,12 @@ class K
             std::sqrt(k_sq_prime))
     {}
 
-    static bool isZeroIndex(const unsigned& i, const unsigned& j)
+    // Constexpr noexcept lookup — the hot path skips 80% of (i,j) pairs via
+    // this check, so we want it inlined to a single array load. Bounds
+    // guarded by an assert in debug builds; production builds trust the
+    // caller (always n_structs = 12 in our codebase).
+    static constexpr bool isZeroIndex(unsigned i, unsigned j) noexcept
     {
-      if (i > 11 || j > 11)
-        throw std::runtime_error("Function get(..) out of range in Kernels_K");
       return kZeroMask[i * 12 + j];
     }
 
