@@ -11,7 +11,7 @@
 namespace parameters {
 namespace numerical {
 // The number of steps in the k/k' grid
-constexpr unsigned k_steps = 128;
+constexpr unsigned k_steps = 192;
 // The number of steps in the z/z' grid
 constexpr unsigned z_steps = 32;
 // The number of steps in the y grid
