@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <complex>
 #include <cstddef>
 #include <vector>
@@ -123,5 +124,74 @@ public:
   }
 };
 
+// Sparse 6-D tensor — same logical shape as Tensor6 but only allocates
+// storage for (i,j) pairs flagged non-zero by the predicate passed at
+// construction. The kernel matrix K_ij has only 26 non-zero (i,j) pairs
+// out of 144 (8+4 block decoupling + within-block sparsity, see
+// Kernels_K.hh::isZeroIndex), so storage drops by ~5.5×.
+//
+// Behaviour:
+//  - operator()(i,k,z,j,kp,zp): defined only for non-zero (i,j); returns a
+//    reference into the compressed buffer. Calling for a zero (i,j) is UB
+//    in production builds (asserted in debug). The BSE iteration always
+//    short-circuits via `if (K::isZeroIndex(i,j)) continue;` before access.
+//  - slice2d(i,k,z,j): same restriction, returns a Row2D view.
+template<typename T>
+class SparseTensor6 {
+  std::vector<T> data_;
+  std::array<int, 144> ij_to_slot_{};   // -1 means zero
+  std::size_t n_slots_ = 0;
+  std::size_t d1_ = 0, d2_ = 0, d4_ = 0, d5_ = 0;
+
+  std::size_t flat(std::size_t i, std::size_t k, std::size_t z,
+                   std::size_t j, std::size_t kp, std::size_t zp) const {
+    const int s = ij_to_slot_[i * 12 + j];
+    return ((((static_cast<std::size_t>(s) * d1_) + k) * d2_ + z) * d4_ + kp) * d5_ + zp;
+  }
+
+public:
+  SparseTensor6() { ij_to_slot_.fill(-1); }
+
+  // Construct with shape (k, z, kp, zp); is_zero(i,j) returns true for
+  // entries that should not be stored.
+  template<typename ZeroPredicate>
+  SparseTensor6(std::size_t k, std::size_t z, std::size_t kp, std::size_t zp,
+                ZeroPredicate is_zero, T fill = T{})
+    : d1_(k), d2_(z), d4_(kp), d5_(zp)
+  {
+    ij_to_slot_.fill(-1);
+    int slot = 0;
+    for (unsigned i = 0; i < 12; ++i)
+      for (unsigned j = 0; j < 12; ++j)
+        if (!is_zero(i, j))
+          ij_to_slot_[i * 12 + j] = slot++;
+    n_slots_ = static_cast<std::size_t>(slot);
+    data_.assign(n_slots_ * d1_ * d2_ * d4_ * d5_, fill);
+  }
+
+  T& operator()(std::size_t i, std::size_t k, std::size_t z,
+                std::size_t j, std::size_t kp, std::size_t zp) {
+    return data_[flat(i, k, z, j, kp, zp)];
+  }
+  const T& operator()(std::size_t i, std::size_t k, std::size_t z,
+                      std::size_t j, std::size_t kp, std::size_t zp) const {
+    return data_[flat(i, k, z, j, kp, zp)];
+  }
+
+  tensor_detail::Row2D<T> slice2d(std::size_t i, std::size_t k,
+                                  std::size_t z, std::size_t j) {
+    const std::size_t off = flat(i, k, z, j, 0, 0);
+    return tensor_detail::Row2D<T>(data_.data() + off, d4_, d5_);
+  }
+  tensor_detail::Row2D<const T> slice2d(std::size_t i, std::size_t k,
+                                        std::size_t z, std::size_t j) const {
+    const std::size_t off = flat(i, k, z, j, 0, 0);
+    return tensor_detail::Row2D<const T>(data_.data() + off, d4_, d5_);
+  }
+
+  std::size_t bytes() const { return data_.size() * sizeof(T); }
+  std::size_t n_slots() const { return n_slots_; }
+};
+
 using tens_cmplx = Tensor3<std::complex<double>>;
-using ijtens2_double = Tensor6<double>;
+using ijtens2_double = SparseTensor6<double>;

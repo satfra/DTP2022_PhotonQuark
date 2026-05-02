@@ -308,7 +308,11 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
 
     // Precalculate the K kernel
     std::cout << " Calculating K'_ij..." << std::flush;
-    ijtens2_double K_prime(n_structs, k_steps, z_steps, n_structs, k_steps, z_steps);
+    // K_prime is sparse over (i,j): only 26 of 144 (i,j) entries are non-zero
+    // (8+4 block decoupling + within-block sparsity from K::isZeroIndex).
+    // SparseTensor6 only allocates the 26 slots, ~5.5× memory reduction.
+    ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
+                           [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
     precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid,
                           k_sq_table, k_table, s_z_table,
                           K_prime, quark, use_PauliVillars);
