@@ -105,7 +105,7 @@ def main():
     out = folder / "wti.pdf"
     fig.savefig(out)
     print(f"wrote {out}")
-    plt.show()
+    plt.close(fig)
 
 
 if __name__ == "__main__":

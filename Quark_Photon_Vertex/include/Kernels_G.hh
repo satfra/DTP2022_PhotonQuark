@@ -81,7 +81,14 @@ class G
       const double m_km = quark.M(km_sq);
       const double sig_kp = 1.0 / (quark.A(kp_sq) * (kp_sq + m_kp * m_kp));
       const double sig_km = 1.0 / (quark.A(km_sq) * (km_sq + m_km * m_km));
-      const double sig_factor = -sig_kp * sig_km;
+      // BSE solution is empirically invariant under flipping this sign (tested
+      // 2026-05-02): both `+sig_kp*sig_km` and `-sig_kp*sig_km` give bit-identical
+      // a, b, fg outputs. phd-work-horak `quark_photon_vertex` (the codebase ours
+      // derives from) uses negative; their newer QPV-cmplx flipped to positive in
+      // commit c730e15 alongside flipping `a += integral` to `a -= integral` in
+      // iteration.hh — the two flips cancel and converge to the same fixed point.
+      // Keeping the literature Eq. 54 sign here for clarity.
+      const double sig_factor = sig_kp * sig_km;
 
       const double sigma_m = 0.5 * (m_kp + m_km);
       const double delta_m = (m_kp - m_km) / (kp_sq - km_sq);

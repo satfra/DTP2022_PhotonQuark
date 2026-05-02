@@ -1,12 +1,11 @@
 #pragma once
 
 #include <cmath>
-#include <optional>
 
 #include "Utils.hh"
 #include "types.hh"
 #include "parameters.hh"
-#include "LinearInterpolate.hh"
+#include "spline.h"
 
 #include "quark_dse.hh"
 
@@ -43,13 +42,13 @@ class quark_DSE
   public:
     double A(const double& p_sq) const
     {
-      return (*ip_a)(std::log(p_sq));
+      return ip_a(std::log(p_sq));
     }
 
     double M(const double& p_sq) const
     {
       const double q = std::log(p_sq);
-      return (*ip_b)(q) / (*ip_a)(q);
+      return ip_b(q) / ip_a(q);
     }
 
     double z2() const
@@ -68,16 +67,15 @@ class quark_DSE
       quark_b    = quark_a_and_b[1];
       quark_grid = quark_a_and_b[2]; // logarithmic grid in p²
       quark_z2   = quark_a_and_b[3][0];
-      // Construct interpolators once, referencing the now-stable member vectors
-      ip_a.emplace(quark_grid, quark_a);
-      ip_b.emplace(quark_grid, quark_b);
+      // Cubic spline (vs piecewise-linear) is required so that the WTI
+      // finite-difference Δ_A = (A(k+²)−A(k−²))/(k+²−k−²) does not pick up
+      // step jumps at DSE-grid nodes — see phd-work-horak commit c4f017f.
+      ip_a.set_points(quark_grid, quark_a);
+      ip_b.set_points(quark_grid, quark_b);
     }
 
   private:
     vec_double quark_a, quark_b, quark_grid;
     double quark_z2 = 0.;
-    // Interpolators stored as members so they are constructed only once.
-    // std::optional is used because lInterpolator holds references to the
-    // member vectors, which are not ready until the constructor body runs.
-    std::optional<lInterpolator<double, double>> ip_a, ip_b;
+    tk::spline ip_a, ip_b;
 };

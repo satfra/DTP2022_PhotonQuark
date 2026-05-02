@@ -8,6 +8,7 @@
 #include "types.hh"
 #include "QuadratureIntegral.hh"
 #include "ChebyshevPolynomial2.hh"
+#include "LinearInterpolate.hh"
 #include "fileIO.hh"
 
 #include "parameters.hh"
