@@ -9,6 +9,7 @@
 #include "QuadratureIntegral.hh"
 #include "ChebyshevPolynomial2.hh"
 #include "LinearInterpolate.hh"
+#include "spline.h"
 #include "fileIO.hh"
 
 #include "parameters.hh"
@@ -89,18 +90,90 @@ void a_initialize(tens_cmplx &a, const Quark& quark)
         a[i][k_idx][z_idx] = quark.z2() * a0(i);
 }
 
-template<typename Quark>
-void a_iteration_step(const tens_cmplx &b,
-    const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, tens_cmplx &a,
-    const Integrator2d& qint2d, const Quark& quark)
+// Cubic spline of a complex-valued grid function in one real coordinate.
+// Used to interpolate b[j](log k'², z'_idx) along log(k'²) at each fixed
+// Cheb2 z'-grid index. Replaces the linear-in-log(k'²) interpolation that
+// was the dominant interp-error contributor at the IR k² corner where
+// WTI2 max-error sits.
+struct ComplexSpline {
+  tk::spline re_, im_;
+
+  void set_points(const std::vector<double>& x, const vec_cmplx& y) {
+    std::vector<double> y_re(y.size()), y_im(y.size());
+    for (std::size_t i = 0; i < y.size(); ++i) {
+      y_re[i] = y[i].real();
+      y_im[i] = y[i].imag();
+    }
+    re_.set_points(x, y_re);
+    im_.set_points(x, y_im);
+  }
+
+  std::complex<double> operator()(double x) const {
+    return std::complex<double>(re_(x), im_(x));
+  }
+};
+
+// Build cubic splines of b[j][:, zp_idx] over log(k'²) for each (j, zp_idx).
+// Done once per BSE iteration after b_iteration_step refreshes b. The 384
+// splines (n_structs × z_steps at default sizes) are cheap: each is an
+// O(k_steps) tridiagonal solve. Storage ≈ 4·k_steps doubles per spline,
+// total ~1.6 MB at the default grid.
+std::vector<std::vector<ComplexSpline>> build_b_splines(
+    const tens_cmplx& b, const vec_double& k_grid)
 {
   using namespace parameters::numerical;
+  std::vector<std::vector<ComplexSpline>> spline_b(
+      n_structs, std::vector<ComplexSpline>(z_steps));
+  for (unsigned j = 0; j < n_structs; ++j) {
+    for (unsigned zp_idx = 0; zp_idx < z_steps; ++zp_idx) {
+      vec_cmplx b_slice(k_steps);
+      for (unsigned k = 0; k < k_steps; ++k)
+        b_slice[k] = b[j][k][zp_idx];
+      spline_b[j][zp_idx].set_points(k_grid, b_slice);
+    }
+  }
+  return spline_b;
+}
+
+template<typename Quark>
+void a_iteration_step(const tens_cmplx & /*b*/,
+    const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, tens_cmplx &a,
+    const Integrator2d& /*qint2d*/, const Quark& quark,
+    const std::vector<std::vector<ComplexSpline>>& spline_b)
+{
+  using namespace parameters::numerical;
+
+  // Cheb2 z'-quadrature: nodes coincide with z_grid by construction (the
+  // Integrator2d uses ChebyshevPolynomial2<z_steps> on (−1, 1) and so does
+  // Simulation.cpp when building z_grid), so no z-interpolation of b/K'
+  // is needed — we just sample the stored grid value at zp_idx.
+  static const ChebyshevPolynomial2<z_steps> cp_z;
+  static const auto z_weights = cp_z.weights();
+
+  // Legendre quadrature in log(k'²), mapped from [−1,1] to
+  // [k_grid[0], k_grid[k_steps-1]] via dk = (b−a)/2, k_mid = (a+b)/2.
+  static const LegendrePolynomial<k_steps> lp_k;
+  static const auto& k_unit_zeros = lp_k.zeroes();
+  static const auto& k_unit_weights = lp_k.weights();
+
+  const double k_a = k_grid[0];
+  const double k_b = k_grid[k_steps - 1];
+  const double dk = 0.5 * (k_b - k_a);
+  const double k_mid = 0.5 * (k_a + k_b);
+
+  std::vector<double> k_quad_log(k_steps), k_quad_powr2(k_steps);
+  for (unsigned q = 0; q < k_steps; ++q) {
+    k_quad_log[q] = k_mid + dk * k_unit_zeros[q];
+    const double k_prime_sq = std::exp(k_quad_log[q]);
+    k_quad_powr2[q] = k_prime_sq * k_prime_sq;
+  }
+
   #pragma omp parallel for collapse(3)
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
-      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) 
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
       {
-        // Initialize the a's with the inhomogeneous term
+        // Inhomogeneous term: a^0_i (Eq. 48), scaled by Z_2.
         a[i][k_idx][z_idx] = quark.z2() * a0(i);
 
         for (unsigned j = 0; j < n_structs; ++j)
@@ -108,31 +181,31 @@ void a_iteration_step(const tens_cmplx &b,
           if (K::isZeroIndex(i, j))
             continue;
 
-          // Hoist the two lInterpolator2d objects out of the integrand —
-          // qint2d evaluates the lambda y_steps² = 1024× per (i,k,z,j),
-          // and constructing them inside meant 1024 redundant 4-reference
-          // re-binds per call. Use the unchecked path because the y/z
-          // arguments come from Gauss-Legendre / Chebyshev zeros that are
-          // strictly interior to the grid by construction (no clamp /
-          // throw needed).
-          const lInterpolator2d interp_b(k_grid, z_grid, b[j]);
+          // K_prime stays linear-in-log(k'²) for now: per-(i,k_idx,z_idx,j)
+          // spline rebuilds would cost ~3M tridiagonal solves per BSE step
+          // and dominate the run. lInterpolator2d returns the exact stored
+          // value when z' is at a grid point (which it is here), so the
+          // 2D interp degenerates to 1D linear-in-log(k'²) cleanly.
           const lInterpolator2d interp_K(k_grid, z_grid, K_prime.slice2d(i, k_idx, z_idx, j));
 
-          auto f = [&](const double &k_prime_sq_log, const double &z_prime) {
-            const double k_prime_sq = std::exp(k_prime_sq_log);
-            const auto b_j = interp_b.unchecked(k_prime_sq_log, z_prime);
-            const auto K_prime_ij = interp_K.unchecked(k_prime_sq_log, z_prime);
-            // No √(1-z'²) here — it is the Chebyshev type 2 weight.
-            return K_prime_ij * b_j * powr<2>(k_prime_sq);
-          };
+          std::complex<double> integral{0., 0.};
+          for (unsigned zp_idx = 0; zp_idx < z_steps; ++zp_idx)
+          {
+            const double z_prime = z_grid[zp_idx];
+            const auto& spline_bj = spline_b[j][zp_idx];
 
-          // Evaluate the integral. z bounds are the natural Chebyshev
-          // domain (-1, 1); k bounds remain the log-k² grid endpoints.
-          const std::complex<double> integral = qint2d(f,
-              k_grid[0], k_grid[k_steps - 1],
-              -1.0, 1.0);
+            std::complex<double> partial{0., 0.};
+            for (unsigned q = 0; q < k_steps; ++q)
+            {
+              const double K_at = interp_K.unchecked(k_quad_log[q], z_prime);
+              const auto b_at = spline_bj(k_quad_log[q]);
+              partial += k_unit_weights[q] * K_at * b_at * k_quad_powr2[q];
+            }
+            partial *= dk;
+            // Cheb2 weight already absorbs √(1−z'²); no extra factor here.
+            integral += z_weights[zp_idx] * partial;
+          }
 
-          // Add this to the a's
           a[i][k_idx][z_idx] += integral * 2.0 * M_PI * int_factors;
         }
       }
@@ -337,8 +410,14 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);
       debug_out(" done\n", debug);
 
+      // Refresh the cubic splines of b[j](log k'²) at each z'-grid point.
+      // Used inside a_iteration_step to interpolate b at the Legendre
+      // quadrature nodes in k' — replaces the linear log-k' interpolation
+      // that limited WTI2 accuracy at the IR k corner.
+      const auto spline_b = build_b_splines(b, k_grid);
+
       debug_out("    Calculating a_i...", debug);
-      a_iteration_step(b, K_prime, z_grid, k_grid, a, qint2d, quark);
+      a_iteration_step(b, K_prime, z_grid, k_grid, a, qint2d, quark, spline_b);
       debug_out(" done\n", debug);
 
       // check the convergence
