@@ -9,7 +9,7 @@
 #include "QuadratureIntegral.hh"
 #include "ChebyshevPolynomial2.hh"
 #include "LinearInterpolate.hh"
-#include "spline.h"
+#include "complex_spline.hh"
 #include "fileIO.hh"
 
 #include "parameters.hh"
@@ -89,29 +89,6 @@ void a_initialize(tens_cmplx &a, const Quark& quark)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
         a[i][k_idx][z_idx] = quark.z2() * a0(i);
 }
-
-// Cubic spline of a complex-valued grid function in one real coordinate.
-// Used to interpolate b[j](log k'², z'_idx) along log(k'²) at each fixed
-// Cheb2 z'-grid index. Replaces the linear-in-log(k'²) interpolation that
-// was the dominant interp-error contributor at the IR k² corner where
-// WTI2 max-error sits.
-struct ComplexSpline {
-  tk::spline re_, im_;
-
-  void set_points(const std::vector<double>& x, const vec_cmplx& y) {
-    std::vector<double> y_re(y.size()), y_im(y.size());
-    for (std::size_t i = 0; i < y.size(); ++i) {
-      y_re[i] = y[i].real();
-      y_im[i] = y[i].imag();
-    }
-    re_.set_points(x, y_re);
-    im_.set_points(x, y_im);
-  }
-
-  std::complex<double> operator()(double x) const {
-    return std::complex<double>(re_(x), im_(x));
-  }
-};
 
 // Build cubic splines of b[j][:, zp_idx] over log(k'²) for each (j, zp_idx).
 // Done once per BSE iteration after b_iteration_step refreshes b. The 384

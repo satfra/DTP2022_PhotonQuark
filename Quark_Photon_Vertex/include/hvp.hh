@@ -15,7 +15,7 @@
 #include "QuadratureIntegral.hh"
 #include "LegendrePolynomials.hh"
 #include "ChebyshevPolynomial2.hh"
-#include "LinearInterpolate.hh"
+#include "complex_spline.hh"
 
 namespace hvp
 {
@@ -73,12 +73,6 @@ namespace hvp
     return out;
   }
 
-  // z dimension uses Gauss–Chebyshev type 2 so the √(1−z²) Jacobian of
-  // the 4D loop measure is absorbed into the quadrature weights.
-  using HvpIntegrator = qIntegral2d<
-      LegendrePolynomial<parameters::numerical::k_steps>,
-      ChebyshevPolynomial2<parameters::numerical::z_steps>>;
-
   // Computes the renormalised hadronic-vacuum-polarisation loop on the
   // existing q_grid. The b's already contain the quark propagators
   // (b ≡ S·Γ·S, see literature/3-Quark-Photon-Vertex.pdf), so the
@@ -94,13 +88,19 @@ namespace hvp
   // is performed *inside* the integral so the divergent parts cancel
   // at the integrand level, leaving a well-defined finite integrand.
   // The renormalisation point is q_grid[0] (= parameters::numerical::min_q_sq).
+  //
+  // Quadrature: Legendre in log(k'²), Cheb2 in z' — the latter coincides
+  // with z_grid by construction. b1/b7/b10 are cubic-splined in log(k'²)
+  // at each z'-grid index (the same fix applied to a_iteration_step in
+  // the BSE; linear interp was the dominant integrand error). Direct
+  // (zp_idx, k_quad_idx) loops let us index splines by zp_idx instead of
+  // a value-to-index lookup.
   inline vec_double compute_hvp_pi(
       const tens_cmplx& b1, const tens_cmplx& b7, const tens_cmplx& b10,
-      const vec_double& q_grid, const vec_double& k_grid, const vec_double& z_grid)
+      const vec_double& q_grid, const vec_double& k_grid, const vec_double& /*z_grid*/)
   {
     using namespace parameters::numerical;
 
-    HvpIntegrator qint2d;
     vec_double pi_values(q_steps, 0.0);
 
     constexpr double pref_b1  = 4.0 * M_SQRT2;
@@ -108,50 +108,83 @@ namespace hvp
     constexpr double pref_b10 = 4.0;
 
     constexpr unsigned q_ren = 0;
-    // b*[q_ren] returns a Tensor3 row view (ConstRow2D); take it by value
+    // b*[q_ren] returns a Tensor3 row view (Row2D); take it by value
     // since it's a small pointer+strides struct, not a heap-backed vector.
     const auto b1_ren  = b1[q_ren];
     const auto b7_ren  = b7[q_ren];
     const auto b10_ren = b10[q_ren];
 
+    // Legendre / Cheb2 quadrature data (built once).
+    static const LegendrePolynomial<k_steps> lp_k;
+    static const auto& k_unit_zeros   = lp_k.zeroes();
+    static const auto& k_unit_weights = lp_k.weights();
+    static const ChebyshevPolynomial2<z_steps> cp_z;
+    static const auto z_weights = cp_z.weights();
+
+    const double k_a = k_grid.front();
+    const double k_b = k_grid.back();
+    const double dk = 0.5 * (k_b - k_a);
+    const double k_mid = 0.5 * (k_a + k_b);
+
+    vec_double k_quad_log(k_steps), k_quad_powr2(k_steps);
+    for (unsigned q = 0; q < k_steps; ++q) {
+      k_quad_log[q] = k_mid + dk * k_unit_zeros[q];
+      const double k_sq = std::exp(k_quad_log[q]);
+      k_quad_powr2[q] = k_sq * k_sq;
+    }
+
+    // Build z_steps cubic splines in log(k'²) from a 2D (k, z) view.
+    // Works for any view exposing [k_idx][zp_idx] (Row2D from types.hh).
+    auto build_splines = [&](const auto& view2d) {
+      std::vector<ComplexSpline> splines(z_steps);
+      for (unsigned zp = 0; zp < z_steps; ++zp) {
+        vec_cmplx slice(k_steps);
+        for (unsigned k = 0; k < k_steps; ++k)
+          slice[k] = view2d[k][zp];
+        splines[zp].set_points(k_grid, slice);
+      }
+      return splines;
+    };
+
+    // Renormalisation-point splines: built once, reused across all q_iter.
+    const auto sp_b1_ren  = build_splines(b1_ren);
+    const auto sp_b7_ren  = build_splines(b7_ren);
+    const auto sp_b10_ren = build_splines(b10_ren);
+
     #pragma omp parallel for
     for (unsigned q_iter = 0; q_iter < q_steps; ++q_iter)
     {
-      lInterpolator2d ip_b1     (k_grid, z_grid, b1[q_iter]);
-      lInterpolator2d ip_b7     (k_grid, z_grid, b7[q_iter]);
-      lInterpolator2d ip_b10    (k_grid, z_grid, b10[q_iter]);
-      lInterpolator2d ip_b1_ren (k_grid, z_grid, b1_ren);
-      lInterpolator2d ip_b7_ren (k_grid, z_grid, b7_ren);
-      lInterpolator2d ip_b10_ren(k_grid, z_grid, b10_ren);
+      const auto sp_b1  = build_splines(b1[q_iter]);
+      const auto sp_b7  = build_splines(b7[q_iter]);
+      const auto sp_b10 = build_splines(b10[q_iter]);
 
-      auto integrand = [&](const double& log_k_sq, const double& z)
+      std::complex<double> integral{0., 0.};
+      for (unsigned zp = 0; zp < z_steps; ++zp)
       {
-        const std::complex<double> trace_p =
-            pref_b1  * ip_b1 (log_k_sq, z) +
-            pref_b7  * ip_b7 (log_k_sq, z) +
-            pref_b10 * ip_b10(log_k_sq, z);
+        std::complex<double> partial{0., 0.};
+        for (unsigned q = 0; q < k_steps; ++q)
+        {
+          const double log_k_sq = k_quad_log[q];
 
-        const std::complex<double> trace_ren =
-            pref_b1  * ip_b1_ren (log_k_sq, z) +
-            pref_b7  * ip_b7_ren (log_k_sq, z) +
-            pref_b10 * ip_b10_ren(log_k_sq, z);
+          const std::complex<double> trace_p =
+              pref_b1  * sp_b1 [zp](log_k_sq) +
+              pref_b7  * sp_b7 [zp](log_k_sq) +
+              pref_b10 * sp_b10[zp](log_k_sq);
 
-        (void)z;  // z enters only through the trace; no explicit Jacobian.
-        const double k_sq = std::exp(log_k_sq);
-        // 4D Euclidean measure with the log-k² Jacobian:
-        //   d⁴k/(2π)⁴ · f  =  int_factors · 2π · √(1−z²) · k² · d(k²) dz · f
-        //                  =  int_factors · 2π · √(1−z²) · (k²)² · d(log k²) dz · f
-        // The √(1−z²) factor is the Chebyshev type 2 weight (see
-        // HvpIntegrator above), so it must NOT be multiplied in here.
-        const double measure = int_factors * 2. * M_PI * powr<2>(k_sq);
+          const std::complex<double> trace_ren =
+              pref_b1  * sp_b1_ren [zp](log_k_sq) +
+              pref_b7  * sp_b7_ren [zp](log_k_sq) +
+              pref_b10 * sp_b10_ren[zp](log_k_sq);
 
-        return measure * (trace_p - trace_ren);
-      };
-
-      const std::complex<double> integral = qint2d(integrand,
-          k_grid.front(), k_grid.back(),
-          -1.0, 1.0);
-
+          // 4D Euclidean measure with log-k² Jacobian (k'⁴ from
+          // (1/2)·k² dk² → (k²)² d(log k²)). √(1−z'²) is the Cheb2 weight,
+          // baked into z_weights; do not include it here.
+          const double measure = int_factors * 2. * M_PI * k_quad_powr2[q];
+          partial += k_unit_weights[q] * (trace_p - trace_ren) * measure;
+        }
+        partial *= dk;
+        integral += z_weights[zp] * partial;
+      }
       pi_values[q_iter] = integral.real();
     }
 
