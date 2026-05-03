@@ -139,7 +139,8 @@ template<typename Quark>
 void a_iteration_step(const tens_cmplx & /*b*/,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, tens_cmplx &a,
     const Integrator2d& /*qint2d*/, const Quark& quark,
-    const std::vector<std::vector<ComplexSpline>>& spline_b)
+    const std::vector<std::vector<ComplexSpline>>& spline_b,
+    const vec_double &k_quad_log, const vec_double &k_sq_quad_table)
 {
   using namespace parameters::numerical;
 
@@ -150,23 +151,21 @@ void a_iteration_step(const tens_cmplx & /*b*/,
   static const ChebyshevPolynomial2<z_steps> cp_z;
   static const auto z_weights = cp_z.weights();
 
-  // Legendre quadrature in log(k'²), mapped from [−1,1] to
-  // [k_grid[0], k_grid[k_steps-1]] via dk = (b−a)/2, k_mid = (a+b)/2.
+  // Legendre k-quadrature weights (nodes/log were built once in
+  // iterate_a_and_b and threaded through here). K_prime is tabulated
+  // directly at these nodes (see precalculate_K_kernel) so we never
+  // interpolate K' along k' — the per-(k_idx,z_idx,j) inner sum is just a
+  // weighted dot product over k'_quad and zp.
   static const LegendrePolynomial<k_steps> lp_k;
-  static const auto& k_unit_zeros = lp_k.zeroes();
   static const auto& k_unit_weights = lp_k.weights();
 
   const double k_a = k_grid[0];
   const double k_b = k_grid[k_steps - 1];
   const double dk = 0.5 * (k_b - k_a);
-  const double k_mid = 0.5 * (k_a + k_b);
 
-  std::vector<double> k_quad_log(k_steps), k_quad_powr2(k_steps);
-  for (unsigned q = 0; q < k_steps; ++q) {
-    k_quad_log[q] = k_mid + dk * k_unit_zeros[q];
-    const double k_prime_sq = std::exp(k_quad_log[q]);
-    k_quad_powr2[q] = k_prime_sq * k_prime_sq;
-  }
+  std::vector<double> k_quad_powr2(k_steps);
+  for (unsigned q = 0; q < k_steps; ++q)
+    k_quad_powr2[q] = k_sq_quad_table[q] * k_sq_quad_table[q];
 
   #pragma omp parallel for collapse(3)
   for (unsigned i = 0; i < n_structs; ++i)
@@ -181,23 +180,15 @@ void a_iteration_step(const tens_cmplx & /*b*/,
           if (K::isZeroIndex(i, j))
             continue;
 
-          // K_prime stays linear-in-log(k'²) for now: per-(i,k_idx,z_idx,j)
-          // spline rebuilds would cost ~3M tridiagonal solves per BSE step
-          // and dominate the run. lInterpolator2d returns the exact stored
-          // value when z' is at a grid point (which it is here), so the
-          // 2D interp degenerates to 1D linear-in-log(k'²) cleanly.
-          const lInterpolator2d interp_K(k_grid, z_grid, K_prime.slice2d(i, k_idx, z_idx, j));
-
           std::complex<double> integral{0., 0.};
           for (unsigned zp_idx = 0; zp_idx < z_steps; ++zp_idx)
           {
-            const double z_prime = z_grid[zp_idx];
             const auto& spline_bj = spline_b[j][zp_idx];
 
             std::complex<double> partial{0., 0.};
             for (unsigned q = 0; q < k_steps; ++q)
             {
-              const double K_at = interp_K.unchecked(k_quad_log[q], z_prime);
+              const double K_at = K_prime(i, k_idx, z_idx, j, q, zp_idx);
               const auto b_at = spline_bj(k_quad_log[q]);
               partial += k_unit_weights[q] * K_at * b_at * k_quad_powr2[q];
             }
@@ -242,6 +233,7 @@ void precalculate_K_kernel(const vec_double &y_grid,
     const Integrator1d &qint1d, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid,
     const vec_double &k_sq_table, const vec_double &k_table,
+    const vec_double &k_sq_quad_table, const vec_double &k_quad_table,
     const vec_double &s_z_table,
     ijtens2_double &K_prime, const Quark& quark, const bool use_PauliVillars)
 {
@@ -250,6 +242,9 @@ void precalculate_K_kernel(const vec_double &y_grid,
   // collapse(3); pruned (i,j) pairs (≈40% via K::isZeroIndex) become cheap
   // continues but threads stay saturated. z_prime_idx remains serial inside
   // each task so the inner write to K_prime walks a contiguous row.
+  // k_prime_idx indexes the Legendre k-quadrature nodes used downstream by
+  // a_iteration_step, not the k_grid storage points — i.e., K_prime is
+  // tabulated *at* the BSE quadrature so no k-interpolation is needed.
   #pragma omp parallel for collapse(5)
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
@@ -261,9 +256,9 @@ void precalculate_K_kernel(const vec_double &y_grid,
               continue;
 
             const double k_sq = k_sq_table[k_idx];
-            const double k_prime_sq = k_sq_table[k_prime_idx];
+            const double k_prime_sq = k_sq_quad_table[k_prime_idx];
             const double k_v = k_table[k_idx];
-            const double k_prime_v = k_table[k_prime_idx];
+            const double k_prime_v = k_quad_table[k_prime_idx];
             const double k_kp_sqrt = k_v * k_prime_v;
             const double& z = z_grid[z_idx];
             const double s_z = s_z_table[z_idx];
@@ -359,6 +354,27 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   for (unsigned i = 0; i < z_steps; ++i)
     s_z_table[i] = std::sqrt(1. - z_grid[i] * z_grid[i]);
 
+  // Tables for the inner k'-quadrature nodes: K_prime is sampled DIRECTLY
+  // at the Legendre quadrature points used by a_iteration_step (not at
+  // k_grid). This eliminates the linear-in-log(k') interpolation of
+  // K_prime that was the remaining BSE-side discretization residual after
+  // splining b. The nodes/weights are the same as the qIntegral2d's k slot.
+  static const LegendrePolynomial<k_steps> lp_k_quad;
+  const auto& k_unit_zeros = lp_k_quad.zeroes();
+  const double k_a_log = k_grid[0];
+  const double k_b_log = k_grid[k_steps - 1];
+  const double k_dk = 0.5 * (k_b_log - k_a_log);
+  const double k_mid_log = 0.5 * (k_a_log + k_b_log);
+
+  vec_double k_quad_log(k_steps);
+  vec_double k_sq_quad_table(k_steps);
+  vec_double k_quad_table(k_steps);
+  for (unsigned i = 0; i < k_steps; ++i) {
+    k_quad_log[i] = k_mid_log + k_dk * k_unit_zeros[i];
+    k_sq_quad_table[i] = std::exp(k_quad_log[i]);
+    k_quad_table[i] = std::sqrt(k_sq_quad_table[i]);
+  }
+
   // prepare output files
   emptyIdxFile<12>("fg_file", "#q_sq i k_sq z Re(fg) Im(fg)");
   emptyIdxFile<12>("fg_z0_file", "#q_sq i k_sq Re(fg) Im(fg)");
@@ -387,7 +403,9 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
                            [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
     precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid,
-                          k_sq_table, k_table, s_z_table,
+                          k_sq_table, k_table,
+                          k_sq_quad_table, k_quad_table,
+                          s_z_table,
                           K_prime, quark, use_PauliVillars);
     std::cout << " done\n";
 
@@ -417,7 +435,8 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
       const auto spline_b = build_b_splines(b, k_grid);
 
       debug_out("    Calculating a_i...", debug);
-      a_iteration_step(b, K_prime, z_grid, k_grid, a, qint2d, quark, spline_b);
+      a_iteration_step(b, K_prime, z_grid, k_grid, a, qint2d, quark, spline_b,
+                       k_quad_log, k_sq_quad_table);
       debug_out(" done\n", debug);
 
       // check the convergence
