@@ -28,6 +28,10 @@ constexpr double max_q_sq = 1;
 constexpr double target_acc = 1e-5;
 constexpr unsigned max_steps = 40;
 
+// IR bias for the log(k²) grid; see parameters.hh for the meaning. α = 1
+// reproduces the uniform-log grid (the historical bench baseline).
+constexpr double k_grid_ir_bias = 1.0;
+
 constexpr unsigned quark_dse_steps_q = 400;
 constexpr unsigned quark_dse_steps_z = 128;
 constexpr unsigned quark_dse_max_steps = 80;

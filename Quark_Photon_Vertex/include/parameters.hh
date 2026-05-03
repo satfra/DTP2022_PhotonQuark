@@ -11,7 +11,7 @@
 namespace parameters {
 namespace numerical {
 // The number of steps in the k/k' grid
-constexpr unsigned k_steps = 192;
+constexpr unsigned k_steps = 128;
 // The number of steps in the z/z' grid
 constexpr unsigned z_steps = 32;
 // The number of steps in the y grid
@@ -26,6 +26,14 @@ constexpr double max_q_sq = 1;
 constexpr double target_acc = 1e-5;
 // Maximum number of iteration steps
 constexpr unsigned max_steps = 100;
+
+// IR bias for the log(k²) grid built in Simulation.cpp. Maps u ∈ [0,1]
+// through f(u) = α·u + (1−α)·u³ with α = k_grid_ir_bias. α = 1 reproduces
+// the uniform-log grid; α < 1 packs more points near lambda_IR. α = 0.3
+// gives ≈3.3× IR density and ≈2.06× as many points in the first three
+// decades above lambda_IR (where the WTI2 residual lives), at the cost of
+// a 1.32× wider UV step than the uniform grid.
+constexpr double k_grid_ir_bias = 0.3;
 
 // Grid for the quark propagator dse
 constexpr unsigned quark_dse_steps_q = 1000;

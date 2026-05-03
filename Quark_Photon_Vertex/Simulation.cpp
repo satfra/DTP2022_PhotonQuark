@@ -29,12 +29,27 @@ int main(int argc, char *argv[])
   // avoid z == 0 in a grid, which would lead to division by zero.
   static_assert(parameters::numerical::z_steps % 2 == 0);
 
-  // create the k_grid, fill it and transform it to the correct range
+  // create the k_grid in log(k²), biased toward the IR. WTI2's max-error
+  // pocket sits at k² ≲ 10⁻⁴ GeV² (Stage 1 + HPC-grid analysis), so we
+  // remap the uniform parameter u = i/(N−1) ∈ [0,1] through the cubic
+  // f(u) = α·u + (1−α)·u³ with α = k_grid_ir_bias < 1. f'(0) = α gives
+  // ≈1/α-fold IR density vs uniform-log; the cubic tail keeps UV-decade
+  // resolution acceptable (vs the quadratic, which front-loads UV growth
+  // too aggressively). At α = 0.3, k_steps = 128: ≈2.06× as many grid
+  // points fall in the first three decades above lambda_IR.
   std::vector<double> k_grid(parameters::numerical::k_steps);
-  std::iota(k_grid.begin(), k_grid.end(), 0);
-  k_grid = linearMapTo(k_grid, 0., double(k_grid.size()-1),
-                       std::log(parameters::physical::lambda_IR),
-                       std::log(parameters::physical::lambda_UV));
+  {
+    using parameters::numerical::k_grid_ir_bias;
+    const double log_IR = std::log(parameters::physical::lambda_IR);
+    const double log_UV = std::log(parameters::physical::lambda_UV);
+    const double L = log_UV - log_IR;
+    const double n_minus_1 = double(k_grid.size() - 1);
+    for (std::size_t i = 0; i < k_grid.size(); ++i) {
+      const double u = double(i) / n_minus_1;
+      const double f = k_grid_ir_bias * u + (1.0 - k_grid_ir_bias) * u * u * u;
+      k_grid[i] = log_IR + f * L;
+    }
+  }
 
   // create the q_grid, fill it and transform it to the correct range
   std::vector<double> q_grid(parameters::numerical::q_steps);
