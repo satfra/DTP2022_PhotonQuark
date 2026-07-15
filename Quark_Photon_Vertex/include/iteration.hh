@@ -214,8 +214,8 @@ void b_iteration_step(const tens_cmplx &a, const double &q_sq,
 }
 
 template<typename Quark>
-void precalculate_K_kernel(const vec_double &y_grid,
-    const Integrator1d &qint1d, const double &q_sq,
+void precalculate_K_kernel(const vec_double &y_nodes,
+    const vec_double &y_weights, const double y_dx, const double &q_sq,
     const vec_double &z_grid, const vec_double &k_grid,
     const vec_double &k_sq_table, const vec_double &k_table,
     const vec_double &k_sq_quad_table, const vec_double &k_quad_table,
@@ -253,8 +253,19 @@ void precalculate_K_kernel(const vec_double &y_grid,
               const double& z_prime = z_grid[z_prime_idx];
               const double s_z_prime = s_z_table[z_prime_idx];
 
-              auto f = [&](const double &y)
+              // y-quadrature, open-coded over the pre-mapped Legendre nodes.
+              // The integration bounds (y_grid[0], y_grid[y_steps-1]) are fixed
+              // for the whole run, so y_nodes/y_weights/y_dx are hoisted once in
+              // iterate_a_and_b — this removes the per-call std::vector alloc
+              // that qIntegral::operator() (linearMapTo) did on every one of the
+              // ~1e9 calls per q-point, and makes the loop device-offloadable.
+              // Accumulation order matches qint1d exactly (dx * w[i] * f(y_i)),
+              // so results stay bit-identical.
+              double integral_y = 0.;
+              for (unsigned y_idx = 0; y_idx < y_steps; ++y_idx)
               {
+                const double y = y_nodes[y_idx];
+
                 // Inlined momentumtransform::l2 with the precomputed
                 // sqrt(k²·k'²) and sin terms; matches the old formula bit-for-
                 // bit modulo associativity (≤1 ULP under -ffast-math).
@@ -267,11 +278,10 @@ void precalculate_K_kernel(const vec_double &y_grid,
 
                 K k_kernel(k_sq, k_prime_sq, z, z_prime, y,
                            k_kp_sqrt, s_z, s_z_prime, k_v, k_prime_v);
-                return gl * k_kernel.get(i, j);
-              };
+                integral_y += y_dx * y_weights[y_idx] * (gl * k_kernel.get(i, j));
+              }
 
-              K_prime(i, k_idx, z_idx, j, k_prime_idx, z_prime_idx) =
-                  qint1d(f, y_grid[0], y_grid[y_steps - 1]);
+              K_prime(i, k_idx, z_idx, j, k_prime_idx, z_prime_idx) = integral_y;
             }
           }
 }
@@ -340,10 +350,23 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
   };
 
   // Do some Legendre Magic
-  Integrator1d qint1d;
   Integrator2d qint2d;
 
   const Quark quark(fp);
+
+  // Pre-map the y-quadrature once. The y-integration bounds (y_grid[0],
+  // y_grid[y_steps-1]) are fixed for the whole run, so the mapped Legendre
+  // nodes, weights and dx are constant. Hoisting them here lets
+  // precalculate_K_kernel open-code the y-sum instead of calling
+  // qIntegral::operator() (which allocated a fresh std::vector per call via
+  // linearMapTo — ~1e9 allocations per q-point). Same nodes/weights/order as
+  // the old qint1d path, so K' stays bit-identical.
+  static const LegendrePolynomial<y_steps> lp_y_nodes;
+  const double y_a = y_grid[0];
+  const double y_b = y_grid[y_steps - 1];
+  const double y_dx = 0.5 * (y_b - y_a);
+  const vec_double y_weights = lp_y_nodes.weights();
+  const vec_double y_nodes = linearMapTo(lp_y_nodes.zeroes(), -1., 1., y_a, y_b);
 
   // Hoist the k² = exp(k_grid), √k² and √(1-z²) tables out of the inner
   // loops — they only depend on the (fixed) k/z grids, so the K-kernel
@@ -400,7 +423,7 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
     // SparseTensor6 only allocates the 26 slots, ~5.5× memory reduction.
     ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
                            [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
-    precalculate_K_kernel(y_grid, qint1d, q_sq, z_grid, k_grid,
+    precalculate_K_kernel(y_nodes, y_weights, y_dx, q_sq, z_grid, k_grid,
                           k_sq_table, k_table,
                           k_sq_quad_table, k_quad_table,
                           s_z_table,
