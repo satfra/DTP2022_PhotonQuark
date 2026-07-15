@@ -11,19 +11,19 @@
 namespace parameters {
 namespace numerical {
 // The number of steps in the k/k' grid
-constexpr unsigned k_steps = 128;
+constexpr unsigned k_steps = 96;
 // The number of steps in the z/z' grid
-constexpr unsigned z_steps = 32;
+constexpr unsigned z_steps = 24;
 // The number of steps in the y grid
-constexpr unsigned y_steps = 32;
+constexpr unsigned y_steps = 24;
 // The number of steps in the Q grid
-constexpr unsigned q_steps = 32;
+constexpr unsigned q_steps = 24;
 
 constexpr double min_q_sq = 1e-5;
 constexpr double max_q_sq = 1;
 
 // Target accuracy for the iteration
-constexpr double target_acc = 1e-5;
+constexpr double target_acc = 1e-7;
 // Maximum number of iteration steps
 constexpr unsigned max_steps = 100;
 
@@ -36,10 +36,10 @@ constexpr unsigned max_steps = 100;
 constexpr double k_grid_ir_bias = 0.3;
 
 // Grid for the quark propagator dse
-constexpr unsigned quark_dse_steps_q = 1000;
+constexpr unsigned quark_dse_steps_q = 1024;
 constexpr unsigned quark_dse_steps_z = 256;
-constexpr unsigned quark_dse_max_steps = 200;
-constexpr double quark_dse_acc = 1e-8;
+constexpr unsigned quark_dse_max_steps = 500;
+constexpr double quark_dse_acc = 1e-9;
 
 // number of tensor structures, is ALWAYS fixed to 12, don't change
 constexpr unsigned int n_structs = 12;

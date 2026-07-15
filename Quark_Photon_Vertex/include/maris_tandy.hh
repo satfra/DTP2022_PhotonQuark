@@ -8,7 +8,10 @@
  * has been taken from 1606.09602v2.
  * Implements Eq. (19) in the project description.
  */
-inline double maris_tandy_alpha(const double& p_squared)
+// eta_mt and lambda_mt are the per-flavour Maris-Tandy IR parameters, passed
+// in at runtime (see flavor.hh). The UV parameters (gamma_m, lambda_0,
+// lambda_qcd) are flavour-independent and stay in parameters::physical.
+inline double maris_tandy_alpha(const double& p_squared, const double eta_mt, const double lambda_mt)
 {
   using namespace parameters::physical;
   const double x = p_squared / powr<2>(lambda_mt);
@@ -27,7 +30,7 @@ template<typename Quark>
 double maris_tandy_g(const double& p_squared, const Quark& quark)
 {
   return powr<2>(quark.z2()) * 16.0 * M_PI *
-    maris_tandy_alpha(p_squared)
+    maris_tandy_alpha(p_squared, quark.eta_mt(), quark.lambda_mt())
     / (3.0 * p_squared);
 }
 
@@ -43,6 +46,6 @@ double pauli_villars_g(const double& p_squared, const Quark& quark)
   constexpr double lambda_sq = powr<2>(lambda_pv);
 
   return powr<2>(quark.z2()) * 16.0 * M_PI *
-    ( maris_tandy_alpha(p_squared) / (1. + p_squared / lambda_sq) )
+    ( maris_tandy_alpha(p_squared, quark.eta_mt(), quark.lambda_mt()) / (1. + p_squared / lambda_sq) )
     / (3.0 * p_squared);
 }

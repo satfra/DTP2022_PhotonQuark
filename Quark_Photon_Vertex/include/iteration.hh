@@ -10,15 +10,23 @@
 #include "ChebyshevPolynomial2.hh"
 #include "LinearInterpolate.hh"
 #include "complex_spline.hh"
-#include "fileIO.hh"
+#include "hdf5IO.hh"
 
 #include "parameters.hh"
+#include "flavor.hh"
 #include "Kernels_G.hh"
 #include "Kernels_K.hh"
 #include "momentumtransform.hh"
 #include "basistransform.hh"
 #include "maris_tandy.hh"
 #include "WTI.hh"
+
+// b-slices needed by the HVP loop (b1, b7, b10 ↔ struct indices 0, 6, 9),
+// returned in memory from iterate_a_and_b so hvp.hh no longer re-reads files.
+// Each is indexed [q_iter][k_idx][z_idx].
+struct HvpBInput {
+  tens_cmplx b1, b7, b10;
+};
 
 using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
 // z dimension uses Gauss–Chebyshev type 2: the √(1−z²) Jacobian of the
@@ -303,7 +311,8 @@ void transform_a_to_fg(tens_cmplx &a, const double& q_sq, const vec_double &k_gr
 }
 
 template<typename Quark>
-void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid, const bool use_PauliVillars, const bool debug)
+HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const vec_double &k_grid, const vec_double &y_grid, const bool use_PauliVillars, const bool debug,
+    const FlavorParams &fp, const bool use_quark_DSE, const std::string &h5_path)
 {
   using namespace std::chrono;
   const auto start_time = steady_clock::now();
@@ -311,11 +320,30 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
   using namespace parameters::numerical;
   const unsigned z_0 = z_grid.size() / 2;
 
+  // Flat, row-major result buffers accumulated over the (serial) q-loop and
+  // written once at the end via qpv_hdf5::write_run. Layout has q as the
+  // leading dimension: [q, struct, k, z] (or [q, struct, k] for z0 arrays).
+  // The q-loop and WTI loop are serial, so per-q slices never race.
+  const std::size_t sz_qskz = std::size_t(q_steps) * n_structs * k_steps * z_steps;
+  const std::size_t sz_qsk  = std::size_t(q_steps) * n_structs * k_steps;
+  const std::size_t sz_qwkz = std::size_t(q_steps) * 3 * k_steps * z_steps;
+  const std::size_t sz_qwk  = std::size_t(q_steps) * 3 * k_steps;
+  qpv_hdf5::cvec fg_buf(sz_qskz), b_buf(sz_qskz), fg_z0_buf(sz_qsk);
+  qpv_hdf5::cvec w_buf(sz_qwkz), w_z0_buf(sz_qwk);
+
+  // Flat-index helpers into the [q, n, k, z] and [q, n, k] buffers.
+  auto idx_kz = [&](unsigned q_it, unsigned n, unsigned nn, unsigned ki, unsigned zi) {
+    return ((std::size_t(q_it) * nn + n) * k_steps + ki) * z_steps + zi;
+  };
+  auto idx_k = [&](unsigned q_it, unsigned n, unsigned nn, unsigned ki) {
+    return (std::size_t(q_it) * nn + n) * k_steps + ki;
+  };
+
   // Do some Legendre Magic
   Integrator1d qint1d;
   Integrator2d qint2d;
 
-  const Quark quark;
+  const Quark quark(fp);
 
   // Hoist the k² = exp(k_grid), √k² and √(1-z²) tables out of the inner
   // loops — they only depend on the (fixed) k/z grids, so the K-kernel
@@ -351,13 +379,6 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     k_sq_quad_table[i] = std::exp(k_quad_log[i]);
     k_quad_table[i] = std::sqrt(k_sq_quad_table[i]);
   }
-
-  // prepare output files
-  emptyIdxFile<12>("fg_file", "#q_sq i k_sq z Re(fg) Im(fg)");
-  emptyIdxFile<12>("fg_z0_file", "#q_sq i k_sq Re(fg) Im(fg)");
-  emptyIdxFile<12>("b_file", "#q_sq i k_sq z Re(b) Im(b)");
-  emptyIdxFile<3>("w_file", "#q_sq i k_sq z Re(w) Im(w)");
-  emptyIdxFile<3>("w_z0_file", "#q_sq i k_sq Re(w) Im(w)");
 
   // loop over q
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
@@ -430,15 +451,24 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
     // from the previous-iteration b. With this call b = G_kernel · a holds for
     // the converged a, which is what the HVP loop expects (b ≡ S·Γ·S).
     b_iteration_step(a, q_sq, z_grid, k_grid, b, quark);
-    saveToFile_withGrids<n_structs>(b, "b_file", q_sq, k_grid, z_grid);
+    // stash b into the [q,12,k,z] buffer
+    for (unsigned i = 0; i < n_structs; ++i)
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+          b_buf[idx_kz(q_iter, i, n_structs, k_idx, z_idx)] = b[i][k_idx][z_idx];
     // transform to g,f (almost in place!)
     transform_a_to_fg(a, q_sq, k_grid, z_grid);
     const auto& fg = a;
-    // save to the prepared file
-    saveToFile_withGrids<n_structs>(fg, "fg_file", q_sq, k_grid, z_grid);
-    // save to the prepared file
+    // stash fg into the [q,12,k,z] buffer
+    for (unsigned i = 0; i < n_structs; ++i)
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+          fg_buf[idx_kz(q_iter, i, n_structs, k_idx, z_idx)] = fg[i][k_idx][z_idx];
+    // z-average and stash into the [q,12,k] buffer
     const auto fg_z0 = average_array_z0(fg, z_0);
-    saveToFile_withGrids<n_structs>(fg_z0, "fg_z0_file", q_sq, k_grid);
+    for (unsigned i = 0; i < n_structs; ++i)
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        fg_z0_buf[idx_k(q_iter, i, n_structs, k_idx)] = fg_z0[i][k_idx];
     std::cout << "  done\n";
 
     const auto iter_end_time = steady_clock::now();
@@ -471,11 +501,42 @@ void iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, const v
         w[2][k_idx][z_idx] = Delta_B<Quark>(kminus2,kplus2,quark);
       }
     }
-    saveToFile_withGrids<3>(w, "w_file", q_sq, k_grid, z_grid);
+    // stash w into the [q,3,k,z] buffer
+    for (unsigned i = 0; i < 3; ++i)
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
+          w_buf[idx_kz(q_iter, i, 3, k_idx, z_idx)] = w[i][k_idx][z_idx];
     const auto w_z0 = average_array_z0(w, z_0);
-    saveToFile_withGrids<3>(w_z0, "w_z0_file", q_sq, k_grid);
+    for (unsigned i = 0; i < 3; ++i)
+      for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+        w_z0_buf[idx_k(q_iter, i, 3, k_idx)] = w_z0[i][k_idx];
   }
+
+  // Write everything to a single HDF5 file.
+  std::cout << "\nWriting results to " << h5_path << " ..." << std::flush;
+  qpv_hdf5::RunMeta meta{
+      fp.name, fp.m_c, fp.mu, fp.quark_a0, fp.eta_mt, fp.lambda_mt,
+      parameters::physical::lambda_pv, min_q_sq, max_q_sq,
+      n_structs, q_steps, k_steps, z_steps, y_steps,
+      use_quark_DSE, use_PauliVillars};
+  qpv_hdf5::write_run(h5_path, meta, q_grid, k_sq_table, k_grid, z_grid, y_grid,
+                      fg_buf, fg_z0_buf, b_buf, w_buf, w_z0_buf);
+  std::cout << " done\n";
+
+  // Build the b1/b7/b10 slices (struct indices 0, 6, 9) that the HVP loop
+  // needs, indexed [q_iter][k_idx][z_idx], straight from the b buffer.
+  HvpBInput hvp_in{tens_cmplx(q_steps, k_steps, z_steps),
+                   tens_cmplx(q_steps, k_steps, z_steps),
+                   tens_cmplx(q_steps, k_steps, z_steps)};
+  for (unsigned q_it = 0; q_it < q_steps; ++q_it)
+    for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
+      for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {
+        hvp_in.b1[q_it][k_idx][z_idx]  = b_buf[idx_kz(q_it, 0, n_structs, k_idx, z_idx)];
+        hvp_in.b7[q_it][k_idx][z_idx]  = b_buf[idx_kz(q_it, 6, n_structs, k_idx, z_idx)];
+        hvp_in.b10[q_it][k_idx][z_idx] = b_buf[idx_kz(q_it, 9, n_structs, k_idx, z_idx)];
+      }
 
   auto end_time = steady_clock::now();
   std::cout << "\nProgram finished after " << duration_cast<milliseconds>(end_time - start_time).count()/1000.<< "s\n";
+  return hvp_in;
 }

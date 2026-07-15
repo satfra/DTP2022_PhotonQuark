@@ -7,9 +7,10 @@
 #include "quark_model_functions.hh"
 #include "iteration.hh"
 #include "hvp.hh"
+#include "flavor.hh"
 #include "parameters.hh"
 
-int main(int argc, char *argv[]) 
+int main(int argc, char *argv[])
 {
   // get flags from shell
   std::string flags = argc > 1 ? argv[1] : "";
@@ -25,6 +26,30 @@ int main(int argc, char *argv[])
 
   const bool calculate_hvp = flags.find('h') != std::string::npos;
   if(calculate_hvp) std::cout << "Calculating the hadronic vacuum polarisation after the QPV.\n";
+
+  // Quark flavour: first of l/s/c/b found in the flag string (default light).
+  char flavor_char = 'l';
+  for (char c : {'l', 's', 'c', 'b'})
+    if (flags.find(c) != std::string::npos) { flavor_char = c; break; }
+  const FlavorParams fp = flavor_from_flag(flavor_char);
+  std::cout << "Quark flavour: " << fp.name
+            << " (m_c = " << fp.m_c << " GeV, eta = " << fp.eta_mt
+            << ", Lambda = " << fp.lambda_mt << " GeV)\n";
+
+  // The analytic quark_model is a hardcoded light-quark fit and ignores m_c,
+  // so any non-light flavour is meaningless without the quark DSE (-d).
+  if (fp.name != "light" && !use_quark_DSE) {
+    std::cerr << "\nError: flavour '" << fp.name << "' requires the quark DSE. "
+              << "Add the 'd' flag (the analytic quark model ignores the quark "
+              << "mass and is only valid for the light quark).\n";
+    return 1;
+  }
+
+  // One HDF5 file per run, tagged by flavour + mode.
+  const std::string run_tag = fp.name
+      + (use_quark_DSE ? "_dse" : "")
+      + (use_PauliVillars ? "_pv" : "");
+  const std::string h5_path = "output_" + run_tag + ".h5";
 
   // avoid z == 0 in a grid, which would lead to division by zero.
   static_assert(parameters::numerical::z_steps % 2 == 0);
@@ -69,13 +94,12 @@ int main(int argc, char *argv[])
   const std::vector<double> y_grid = lp_y.zeroes();
 
   // Start the program
-  if(use_quark_DSE)
-    iterate_a_and_b<quark_DSE>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
-  else
-    iterate_a_and_b<quark_model>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug);
+  HvpBInput hvp_in = use_quark_DSE
+    ? iterate_a_and_b<quark_DSE>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug, fp, use_quark_DSE, h5_path)
+    : iterate_a_and_b<quark_model>(q_grid, z_grid, k_grid, y_grid, use_PauliVillars, debug, fp, use_quark_DSE, h5_path);
 
   if(calculate_hvp)
-    hvp::hvp_driver(q_grid, k_grid, z_grid);
+    hvp::hvp_driver(hvp_in, q_grid, k_grid, z_grid, h5_path);
 
   return 0;
 }
