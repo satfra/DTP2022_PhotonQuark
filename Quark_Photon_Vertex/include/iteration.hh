@@ -29,11 +29,13 @@ struct HvpBInput {
   tens_cmplx b1, b7, b10;
 };
 
-using Integrator1d = qIntegral<LegendrePolynomial<parameters::numerical::y_steps>>;
+// The k/y/z quadratures are all open-coded against hoisted node/weight tables
+// (see iterate_a_and_b and precalculate_K_kernel), so no qIntegral object is
+// instantiated here any more.
+//
 // z dimension uses Gauss–Chebyshev type 2: the √(1−z²) Jacobian of the
 // 4D loop measure is absorbed into the quadrature weights, so it must
 // NOT appear in the integrand and the z-bounds must be (-1, 1).
-using Integrator2d = qIntegral2d<LegendrePolynomial<parameters::numerical::k_steps>, ChebyshevPolynomial2<parameters::numerical::z_steps>>;
 
 double update_accuracy(const unsigned z_0, const tens_cmplx &a, const mat_cmplx &a_old)
 {
@@ -124,16 +126,16 @@ std::vector<std::vector<ComplexSpline>> build_b_splines(
 template<typename Quark>
 void a_iteration_step(const tens_cmplx & /*b*/,
     const ijtens2_double &K_prime, const vec_double &z_grid, const vec_double &k_grid, tens_cmplx &a,
-    const Integrator2d& /*qint2d*/, const Quark& quark,
+    const Quark& quark,
     const std::vector<std::vector<ComplexSpline>>& spline_b,
     const vec_double &k_quad_log, const vec_double &k_sq_quad_table)
 {
   using namespace parameters::numerical;
 
-  // Cheb2 z'-quadrature: nodes coincide with z_grid by construction (the
-  // Integrator2d uses ChebyshevPolynomial2<z_steps> on (−1, 1) and so does
-  // Simulation.cpp when building z_grid), so no z-interpolation of b/K'
-  // is needed — we just sample the stored grid value at zp_idx.
+  // Cheb2 z'-quadrature: nodes coincide with z_grid by construction (both this
+  // and Simulation.cpp build z from ChebyshevPolynomial2<z_steps> on (−1, 1)),
+  // so no z-interpolation of b/K' is needed — we just sample the stored grid
+  // value at zp_idx.
   static const ChebyshevPolynomial2<z_steps> cp_z;
   static const auto z_weights = cp_z.weights();
 
@@ -153,6 +155,26 @@ void a_iteration_step(const tens_cmplx & /*b*/,
   for (unsigned q = 0; q < k_steps; ++q)
     k_quad_powr2[q] = k_sq_quad_table[q] * k_sq_quad_table[q];
 
+  // Tabulate b at the k'-quadrature nodes once per BSE step.
+  //
+  // spline_b[j][zp](k_quad_log[q]) depends only on (j, zp, q) — never on
+  // (i, k_idx, z_idx) — but it used to be evaluated inside the collapse(3) over
+  // those, so every value was recomputed n_structs*k_steps*z_steps = 27,648
+  // times (~4,992x redundancy: 1.38e8 spline evaluations per step where 27,648
+  // distinct ones exist, each costing two binary searches plus two Horner
+  // evaluations). The table is n_structs*z_steps*k_steps complex = 432 KiB at
+  // the production grid, and turns the inner q-loop into a contiguous read.
+  vec_cmplx b_at_quad(std::size_t(n_structs) * z_steps * k_steps);
+  #pragma omp parallel for collapse(2)
+  for (unsigned j = 0; j < n_structs; ++j)
+    for (unsigned zp_idx = 0; zp_idx < z_steps; ++zp_idx)
+    {
+      const auto& spline_bj = spline_b[j][zp_idx];
+      const std::size_t base = (std::size_t(j) * z_steps + zp_idx) * k_steps;
+      for (unsigned q = 0; q < k_steps; ++q)
+        b_at_quad[base + q] = spline_bj(k_quad_log[q]);
+    }
+
   #pragma omp parallel for collapse(3)
   for (unsigned i = 0; i < n_structs; ++i)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
@@ -169,13 +191,16 @@ void a_iteration_step(const tens_cmplx & /*b*/,
           std::complex<double> integral{0., 0.};
           for (unsigned zp_idx = 0; zp_idx < z_steps; ++zp_idx)
           {
-            const auto& spline_bj = spline_b[j][zp_idx];
+            // Pre-tabulated b(j, zp, k'_q) — same values the spline returned,
+            // so the accumulation below is unchanged term for term.
+            const std::complex<double>* b_row =
+                &b_at_quad[(std::size_t(j) * z_steps + zp_idx) * k_steps];
 
             std::complex<double> partial{0., 0.};
             for (unsigned q = 0; q < k_steps; ++q)
             {
               const double K_at = K_prime(i, k_idx, z_idx, j, q, zp_idx);
-              const auto b_at = spline_bj(k_quad_log[q]);
+              const auto b_at = b_row[q];
               partial += k_unit_weights[q] * K_at * b_at * k_quad_powr2[q];
             }
             partial *= dk;
@@ -425,8 +450,6 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
   };
 
   // Do some Legendre Magic
-  Integrator2d qint2d;
-
   const Quark quark(fp);
 
   // Pre-map the y-quadrature once. The y-integration bounds (y_grid[0],
@@ -478,6 +501,19 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
     k_quad_table[i] = std::sqrt(k_sq_quad_table[i]);
   }
 
+  // K_prime is sparse over (i,j): only 26 of 144 (i,j) entries are non-zero
+  // (8+4 block decoupling + within-block sparsity from K::isZeroIndex), so
+  // SparseTensor6 allocates just the 26 slots (~5.5x memory reduction) —
+  // still 1.03 GiB at the production grid.
+  //
+  // Allocated ONCE for the whole run, not per q-point: precalculate_K_kernel
+  // overwrites every stored element for each q (all 26 non-zero (i,j) slots
+  // over all k, z, k', z'), so the buffer is safe to reuse and its zero-fill
+  // is pure waste. Constructing it inside the q-loop cost 24 allocate +
+  // zero-fill + free cycles of 1.03 GiB — ~24.7 GiB of pointless memset.
+  ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
+                         [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
+
   // loop over q
   for (unsigned q_iter = 0; q_iter < q_steps; q_iter++)
   {
@@ -491,13 +527,8 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
     tens_cmplx a(n_structs, k_steps, z_steps);
     tens_cmplx b(n_structs, k_steps, z_steps);
 
-    // Precalculate the K kernel
+    // Refill the K kernel for this q (K_prime is allocated once, above).
     std::cout << " Calculating K'_ij..." << std::flush;
-    // K_prime is sparse over (i,j): only 26 of 144 (i,j) entries are non-zero
-    // (8+4 block decoupling + within-block sparsity from K::isZeroIndex).
-    // SparseTensor6 only allocates the 26 slots, ~5.5× memory reduction.
-    ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
-                           [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
     const auto kprecalc_t0 = steady_clock::now();
     precalculate_K_kernel(y_nodes, y_weights, y_dx, q_sq, z_grid, k_grid,
                           k_sq_table, k_table,
@@ -534,7 +565,7 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
       const auto spline_b = build_b_splines(b, k_grid);
 
       debug_out("    Calculating a_i...", debug);
-      a_iteration_step(b, K_prime, z_grid, k_grid, a, qint2d, quark, spline_b,
+      a_iteration_step(b, K_prime, z_grid, k_grid, a, quark, spline_b,
                        k_quad_log, k_sq_quad_table);
       debug_out(" done\n", debug);
 
