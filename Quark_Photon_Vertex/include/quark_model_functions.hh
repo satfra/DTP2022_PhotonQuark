@@ -62,6 +62,12 @@ class quark_DSE
     double eta_mt() const { return eta_mt_; }
     double lambda_mt() const { return lambda_mt_; }
 
+    // Raw DSE solution, for output. quark_grid holds log(p²); quark_a/quark_b
+    // are A(p²) and B(p²) sampled on that grid.
+    const vec_double& dse_log_p_sq() const { return quark_grid; }
+    const vec_double& dse_A() const { return quark_a; }
+    const vec_double& dse_B() const { return quark_b; }
+
     explicit quark_DSE(const FlavorParams& fp)
       : eta_mt_(fp.eta_mt), lambda_mt_(fp.lambda_mt)
     {

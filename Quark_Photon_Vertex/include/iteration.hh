@@ -2,6 +2,7 @@
 
 #include <complex>
 #include <chrono>
+#include <type_traits>
 #include "omp.h"
 
 #include "Utils.hh"
@@ -223,66 +224,140 @@ void precalculate_K_kernel(const vec_double &y_nodes,
     ijtens2_double &K_prime, const Quark& quark, const bool use_PauliVillars)
 {
   using namespace parameters::numerical;
-  // collapse(5) widens the OpenMP iteration space by 144× over the previous
-  // collapse(3); pruned (i,j) pairs (≈40% via K::isZeroIndex) become cheap
-  // continues but threads stay saturated. z_prime_idx remains serial inside
-  // each task so the inner write to K_prime walks a contiguous row.
-  // k_prime_idx indexes the Legendre k-quadrature nodes used downstream by
-  // a_iteration_step, not the k_grid storage points — i.e., K_prime is
-  // tabulated *at* the BSE quadrature so no k-interpolation is needed.
-  #pragma omp parallel for collapse(5)
+
+  // --- Set up for the compute region (shared by the OpenACC and OpenMP paths).
+  // Extract the three scalar quark quantities so the device region never needs
+  // the quark object itself (in the DSE case it holds host-side splines).
+  const double q_z2  = quark.z2();
+  const double q_eta = quark.eta_mt();
+  const double q_lam = quark.lambda_mt();
+
+  // Raw pointers so the OpenACC region maps flat arrays, not std::vector/class
+  // objects. All are read-only inside the loop. __restrict__ is essential: it
+  // tells nvc the output buffer Kp does not alias any read-only table, so the
+  // Kp[flat] store carries no cross-iteration dependence. Without it nvc reports
+  // "loop carried dependence of Kp-> prevents parallelization" and downgrades
+  // the whole collapse(5) to `loop seq` (single-threaded → ~100× slower).
+  const double* __restrict__ k_sq_table_p  = k_sq_table.data();
+  const double* __restrict__ k_table_p     = k_table.data();
+  const double* __restrict__ k_sq_quad_p   = k_sq_quad_table.data();
+  const double* __restrict__ k_quad_p      = k_quad_table.data();
+  const double* __restrict__ s_z_table_p   = s_z_table.data();
+  const double* __restrict__ z_grid_p      = z_grid.data();
+  const double* __restrict__ y_nodes_p     = y_nodes.data();
+  const double* __restrict__ y_weights_p   = y_weights.data();
+
+  // K' flat storage. Writing by explicit flat index (same layout as
+  // SparseTensor6::flat) keeps the whole write device-friendly.
+  double* __restrict__ Kp = K_prime.data();
+  [[maybe_unused]] const std::size_t Kp_n = K_prime.size();  // used in the ACC copyout clause
+  const std::size_t Kd1 = K_prime.d1();
+  const std::size_t Kd2 = K_prime.d2();
+  const std::size_t Kd4 = K_prime.d4();
+  const std::size_t Kd5 = K_prime.d5();
+
+  // Dense list of the non-zero (i,j) kernel pairs, indexed by slot. We iterate
+  // over `slot` directly — a genuine loop induction variable — instead of over
+  // (i,j) with an indirect slot_map[i*12+j] lookup. That makes the leading
+  // factor of the Kp[flat] write index (slot) provably distinct per iteration,
+  // so nvc can prove the loop nest is parallel. With the indirection nvc could
+  // not disprove aliasing on the write and reported "loop carried dependence of
+  // Kp-> prevents parallelization", generating `loop seq` (single GPU thread,
+  // ~100× slower than the CPU). slot == SparseTensor6's ij_to_slot_ value, so
+  // the flat layout is unchanged.
+  const unsigned n_slots = static_cast<unsigned>(K_prime.n_slots());
+  unsigned slot_i[144];
+  unsigned slot_j[144];
   for (unsigned i = 0; i < n_structs; ++i)
+    for (unsigned j = 0; j < n_structs; ++j) {
+      const int s = K_prime.slot_of(i, j);
+      if (s >= 0) { slot_i[s] = i; slot_j[s] = j; }
+    }
+
+  // Parallelise over ALL of (slot, k, z, k', z'); only the innermost
+  // y-quadrature stays sequential, as a genuine per-thread reduction into
+  // integral_y. This is the mapping nvc handles correctly. Two earlier variants
+  // both silently produced zero on the GPU: leaving the z' loop sequential
+  // inside a collapse(4) region, and hoisting the y-loop into an `acc routine`
+  // — in each case nvc mis-generated a cross-thread reduction on integral_y.
+  // k_prime_idx indexes the Legendre k-quadrature nodes used downstream by
+  // a_iteration_step (K_prime is tabulated *at* the BSE quadrature, so no
+  // k-interpolation is needed later).
+  //
+  // OpenACC (nvc++ -acc) offloads this to the GPU; every other compiler falls
+  // back to the identical OpenMP CPU loop. Data clauses copy the small read-only
+  // tables in and the K' buffer out once per q-point.
+#ifdef _OPENACC
+  #pragma acc parallel loop independent gang vector collapse(5) \
+      copyin(k_sq_table_p[0:k_steps], k_table_p[0:k_steps], \
+             k_sq_quad_p[0:k_steps], k_quad_p[0:k_steps], \
+             s_z_table_p[0:z_steps], z_grid_p[0:z_steps], \
+             y_nodes_p[0:y_steps], y_weights_p[0:y_steps], \
+             slot_i[0:n_slots], slot_j[0:n_slots]) \
+      copyout(Kp[0:Kp_n])
+#else
+  #pragma omp parallel for collapse(5)
+#endif
+  for (unsigned slot = 0; slot < n_slots; ++slot)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx)
-        for (unsigned j = 0; j < n_structs; ++j)
-          for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
+        for (unsigned k_prime_idx = 0; k_prime_idx < k_steps; ++k_prime_idx)
+          for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
           {
-            if (K::isZeroIndex(i, j))
-              continue;
+            const unsigned i = slot_i[slot];
+            const unsigned j = slot_j[slot];
 
-            const double k_sq = k_sq_table[k_idx];
-            const double k_prime_sq = k_sq_quad_table[k_prime_idx];
-            const double k_v = k_table[k_idx];
-            const double k_prime_v = k_quad_table[k_prime_idx];
+            const double k_sq = k_sq_table_p[k_idx];
+            const double k_prime_sq = k_sq_quad_p[k_prime_idx];
+            const double k_v = k_table_p[k_idx];
+            const double k_prime_v = k_quad_p[k_prime_idx];
             const double k_kp_sqrt = k_v * k_prime_v;
-            const double& z = z_grid[z_idx];
-            const double s_z = s_z_table[z_idx];
+            const double z = z_grid_p[z_idx];
+            const double s_z = s_z_table_p[z_idx];
+            const double z_prime = z_grid_p[z_prime_idx];
+            const double s_z_prime = s_z_table_p[z_prime_idx];
 
-            for (unsigned z_prime_idx = 0; z_prime_idx < z_steps; ++z_prime_idx)
+            // y-quadrature over the pre-mapped Legendre nodes. Bounds are fixed
+            // for the whole run, so y_nodes/y_weights/y_dx are hoisted once in
+            // iterate_a_and_b (removing the per-call std::vector alloc qIntegral
+            // did). Accumulation order matches qint1d exactly (dx * w[i]·f(y_i)).
+            double integral_y = 0.;
+            for (unsigned y_idx = 0; y_idx < y_steps; ++y_idx)
             {
-              const double& z_prime = z_grid[z_prime_idx];
-              const double s_z_prime = s_z_table[z_prime_idx];
+              const double y = y_nodes_p[y_idx];
 
-              // y-quadrature, open-coded over the pre-mapped Legendre nodes.
-              // The integration bounds (y_grid[0], y_grid[y_steps-1]) are fixed
-              // for the whole run, so y_nodes/y_weights/y_dx are hoisted once in
-              // iterate_a_and_b — this removes the per-call std::vector alloc
-              // that qIntegral::operator() (linearMapTo) did on every one of the
-              // ~1e9 calls per q-point, and makes the loop device-offloadable.
-              // Accumulation order matches qint1d exactly (dx * w[i] * f(y_i)),
-              // so results stay bit-identical.
-              double integral_y = 0.;
-              for (unsigned y_idx = 0; y_idx < y_steps; ++y_idx)
-              {
-                const double y = y_nodes[y_idx];
+              // Inlined momentumtransform::l2 with the precomputed sqrt(k²·k'²)
+              // and sin terms; matches the old formula modulo associativity.
+              const double l_sq = k_sq + k_prime_sq
+                  - 2. * k_kp_sqrt * (z * z_prime + y * s_z * s_z_prime);
 
-                // Inlined momentumtransform::l2 with the precomputed
-                // sqrt(k²·k'²) and sin terms; matches the old formula bit-for-
-                // bit modulo associativity (≤1 ULP under -ffast-math).
-                const double l_sq = k_sq + k_prime_sq
-                    - 2. * k_kp_sqrt * (z * z_prime + y * s_z * s_z_prime);
+              // Scalar (device-callable) gluon overloads — no quark object.
+              const double gl = use_PauliVillars
+                  ? pauli_villars_g(l_sq, q_z2, q_eta, q_lam)
+                  : maris_tandy_g(l_sq, q_z2, q_eta, q_lam);
 
-                const double gl = use_PauliVillars
-                    ? pauli_villars_g(l_sq, quark)
-                    : maris_tandy_g(l_sq, quark);
-
-                K k_kernel(k_sq, k_prime_sq, z, z_prime, y,
-                           k_kp_sqrt, s_z, s_z_prime, k_v, k_prime_v);
-                integral_y += y_dx * y_weights[y_idx] * (gl * k_kernel.get(i, j));
-              }
-
-              K_prime(i, k_idx, z_idx, j, k_prime_idx, z_prime_idx) = integral_y;
+              // K-kernel quantities (identical to the K constructor), then the
+              // free-function k_component. The K *class* method dispatch
+              // (get()->switch->private method) miscompiles to zero on the nvc
+              // device path, while this inline+free-function form is correct on
+              // both host and device.
+              const double u = k_v * s_z;
+              const double uprime = k_prime_v * s_z_prime;
+              const double inv_l2 = 1.0 / l_sq;
+              const double V = (k_v * z - k_prime_v * z_prime) * inv_l2;
+              const double w = u * u * inv_l2;
+              const double wprime = uprime * uprime * inv_l2;
+              const double X = u * uprime * inv_l2;
+              const double kij = k_component(i, j, y, l_sq, u, uprime, V, w, wprime, X);
+              integral_y += y_dx * y_weights_p[y_idx] * (gl * kij);
             }
+
+            // Flat write, matching SparseTensor6::flat with slot as the leading
+            // (i,j) coordinate.
+            const std::size_t flat =
+                ((((std::size_t(slot) * Kd1 + k_idx) * Kd2 + z_idx) * Kd4
+                    + k_prime_idx) * Kd5 + z_prime_idx);
+            Kp[flat] = integral_y;
           }
 }
 
@@ -423,12 +498,15 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
     // SparseTensor6 only allocates the 26 slots, ~5.5× memory reduction.
     ijtens2_double K_prime(k_steps, z_steps, k_steps, z_steps,
                            [](unsigned i, unsigned j) { return K::isZeroIndex(i, j); });
+    const auto kprecalc_t0 = steady_clock::now();
     precalculate_K_kernel(y_nodes, y_weights, y_dx, q_sq, z_grid, k_grid,
                           k_sq_table, k_table,
                           k_sq_quad_table, k_quad_table,
                           s_z_table,
                           K_prime, quark, use_PauliVillars);
-    std::cout << " done\n";
+    const double kprecalc_ms =
+        duration_cast<microseconds>(steady_clock::now() - kprecalc_t0).count() / 1000.;
+    std::cout << " done (" << kprecalc_ms << " ms)\n";
 
     // Initialize a with bare vertex
     a_initialize(a, quark);
@@ -539,11 +617,18 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
   std::cout << "\nWriting results to " << h5_path << " ..." << std::flush;
   qpv_hdf5::RunMeta meta{
       fp.name, fp.m_c, fp.mu, fp.quark_a0, fp.eta_mt, fp.lambda_mt,
-      parameters::physical::lambda_pv, min_q_sq, max_q_sq,
+      parameters::physical::lambda_pv, quark.z2(), min_q_sq, max_q_sq,
       n_structs, q_steps, k_steps, z_steps, y_steps,
       use_quark_DSE, use_PauliVillars};
   qpv_hdf5::write_run(h5_path, meta, q_grid, k_sq_table, k_grid, z_grid, y_grid,
                       fg_buf, fg_z0_buf, b_buf, w_buf, w_z0_buf);
+
+  // When the quark propagator was solved from its DSE, also store the raw
+  // dressing functions A(p²), B(p²), M(p²) on the DSE grid (group /quark_dse).
+  // The analytic quark_model has no such solution, so this is DSE-only.
+  if constexpr (std::is_same_v<Quark, quark_DSE>)
+    qpv_hdf5::append_quark_dse(h5_path, quark.dse_log_p_sq(),
+                               quark.dse_A(), quark.dse_B());
   std::cout << " done\n";
 
   // Build the b1/b7/b10 slices (struct indices 0, 6, 9) that the HVP loop

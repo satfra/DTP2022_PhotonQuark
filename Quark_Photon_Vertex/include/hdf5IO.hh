@@ -25,6 +25,7 @@
  * default grid) — see iterate_a_and_b in iteration.hh.
  */
 
+#include <cmath>
 #include <complex>
 #include <string>
 #include <vector>
@@ -40,6 +41,7 @@ namespace qpv_hdf5
   struct RunMeta {
     std::string flavor;
     double m_c, mu, quark_a0, eta_mt, lambda_mt, lambda_pv;
+    double z2;                 // renormalisation constant Z_2 actually used
     double min_q_sq, max_q_sq;
     unsigned n_structs, q_steps, k_steps, z_steps, y_steps;
     bool use_dse, use_pauli_villars;
@@ -103,6 +105,7 @@ namespace qpv_hdf5
     root.write_attribute("eta_mt", m.eta_mt);
     root.write_attribute("lambda_mt", m.lambda_mt);
     root.write_attribute("lambda_pv", m.lambda_pv);
+    root.write_attribute("z2", m.z2);
     root.write_attribute("min_q_sq", m.min_q_sq);
     root.write_attribute("max_q_sq", m.max_q_sq);
     root.write_attribute("n_structs", m.n_structs);
@@ -137,5 +140,25 @@ namespace qpv_hdf5
     auto g = root.create_group("hvp");
     detail::write_double(g, "p_sq", p_sq);
     detail::write_double(g, "Pi", pi);
+  }
+
+  // Append the quark-DSE solution to an existing run file (group /quark_dse):
+  // the propagator dressing functions A(p^2), B(p^2) and M = B/A on the DSE's
+  // own momentum grid. `log_p_sq` is log(p^2); we also store p_sq = exp(...).
+  inline void append_quark_dse(const std::string& path, const vec_double& log_p_sq,
+                               const vec_double& A, const vec_double& B)
+  {
+    vec_double p_sq(log_p_sq.size()), M(A.size());
+    for (std::size_t i = 0; i < log_p_sq.size(); ++i) p_sq[i] = std::exp(log_p_sq[i]);
+    for (std::size_t i = 0; i < A.size(); ++i) M[i] = (A[i] != 0.0) ? B[i] / A[i] : 0.0;
+
+    auto file = hdf5::File::open(path, hdf5::Access::ReadWrite);
+    auto root = file.root();
+    auto g = root.create_group("quark_dse");
+    detail::write_double(g, "p_sq", p_sq);
+    detail::write_double(g, "log_p_sq", log_p_sq);
+    detail::write_double(g, "A", A);
+    detail::write_double(g, "B", B);
+    detail::write_double(g, "M", M);
   }
 } // namespace qpv_hdf5

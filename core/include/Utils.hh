@@ -7,7 +7,10 @@
 #include <algorithm>
 #include <iostream>
 
-  template<int n, typename RF> 
+#include "acc.hh"
+
+  ACC_ROUTINE_SEQ
+  template<int n, typename RF>
 constexpr RF powr(const RF& x)
 {
   if constexpr (n == 0)
