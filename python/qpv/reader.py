@@ -37,6 +37,8 @@ class Run:
     # optional HVP
     hvp_p_sq: np.ndarray | None
     hvp_pi: np.ndarray | None
+    # optional quark-DSE solution (present only for -d runs)
+    dse: dict | None       # keys: p_sq, log_p_sq, A, B, M (each [n_dse])
     # metadata
     attrs: dict
     fg_names: list[str]
@@ -62,6 +64,10 @@ class Run:
         return self.hvp_p_sq is not None
 
     @property
+    def has_dse(self) -> bool:
+        return self.dse is not None
+
+    @property
     def label(self) -> str:
         """Human-readable run tag from metadata (flavour + mode)."""
         tag = str(self.attrs.get("flavor", "?"))
@@ -78,6 +84,10 @@ def open_run(path: str) -> Run:
         g = f["grids"]
         hvp_p = f["hvp/p_sq"][:] if "hvp" in f else None
         hvp_pi = f["hvp/Pi"][:] if "hvp" in f else None
+        dse = None
+        if "quark_dse" in f:
+            gd = f["quark_dse"]
+            dse = {k: gd[k][:] for k in ("p_sq", "log_p_sq", "A", "B", "M")}
         return Run(
             path=path,
             q_grid=g["q_grid"][:],
@@ -92,6 +102,7 @@ def open_run(path: str) -> Run:
             w_z0=f["w_z0"][:],
             hvp_p_sq=hvp_p,
             hvp_pi=hvp_pi,
+            dse=dse,
             attrs={k: v for k, v in f.attrs.items()},
             fg_names=_decode_names(f["fg_index_names"]),
             w_names=_decode_names(f["w_index_names"]),

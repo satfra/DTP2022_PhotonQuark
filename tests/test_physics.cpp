@@ -10,21 +10,24 @@
 
 TEST_CASE("maris_tandy_alpha: IR and UV behavior")
 {
+    // Light-quark Maris-Tandy IR parameters (see flavor.hh).
+    constexpr double eta = 1.8, lambda = 0.72;
+
     // At p²=0 both IR and UV terms vanish: IR term has x²→0, UV term has (1-exp(0))=0.
     // The function is finite (== 0) at p²=0.
-    const double alpha_ir = maris_tandy_alpha(0.0);
+    const double alpha_ir = maris_tandy_alpha(0.0, eta, lambda);
     CHECK(std::isfinite(alpha_ir));
     CHECK(alpha_ir == doctest::Approx(0.0).epsilon(1e-15));
 
     // At small p² > 0 the coupling is positive (IR enhancement)
-    CHECK(maris_tandy_alpha(0.01) > 0.0);
+    CHECK(maris_tandy_alpha(0.01, eta, lambda) > 0.0);
 
     // At large p² the coupling should fall off (asymptotic freedom)
-    CHECK(maris_tandy_alpha(1e6) < maris_tandy_alpha(1.0));
+    CHECK(maris_tandy_alpha(1e6, eta, lambda) < maris_tandy_alpha(1.0, eta, lambda));
 
     // Regression: known value at p²=1 (GeV²) with default Maris-Tandy parameters
     // Computed from the analytic formula; update this if parameters change.
-    const double alpha_1 = maris_tandy_alpha(1.0);
+    const double alpha_1 = maris_tandy_alpha(1.0, eta, lambda);
     CHECK(alpha_1 == doctest::Approx(alpha_1).epsilon(1e-10)); // self-consistency
     CHECK(alpha_1 > 0.0);
 }

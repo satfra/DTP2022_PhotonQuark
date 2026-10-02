@@ -20,8 +20,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from qpv import open_run
 from qpv.plot_fg import plot_all_fg
-from qpv.plot_wti import plot_all_wti
+from qpv.plot_wti import plot_wti
 from qpv.plot_hvp import plot_hvp
+from qpv.plot_dse import plot_dse
 
 
 def main() -> int:
@@ -38,10 +39,12 @@ def main() -> int:
     print(f"Run: {run.label}  ->  {outdir}/")
     fg = plot_all_fg(run, outdir)
     print(f"  {len(fg)} f/g surfaces")
-    wti = plot_all_wti(run, outdir)
-    print(f"  {len(wti)} WTI plots")
+    wti = plot_wti(run, outdir)
+    print(f"  {os.path.basename(wti)}")
     hvp = plot_hvp(run, outdir)
     print("  hvp.pdf" if hvp else "  (no /hvp group — skipped HVP plot)")
+    dse = plot_dse(run, outdir)
+    print("  quark_dse.pdf" if dse else "  (no /quark_dse group — skipped DSE plot)")
     return 0
 
 

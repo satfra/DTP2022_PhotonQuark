@@ -25,12 +25,13 @@ def plot_hvp(run: Run, outdir: str) -> str | None:
     pi = run.hvp_pi
     mask = pi > 0.0
 
-    fig, ax = plt.subplots(figsize=(6, 4.5))
-    ax.loglog(p_sq[mask], pi[mask], "o-", ms=4)
+    fig, ax = plt.subplots(figsize=(5.5, 4))
+    ax.loglog(p_sq[mask], pi[mask], "o-", color="black", ms=4,
+              label=r"$\tilde{\Pi}(p^2)$")
     ax.set_xlabel(r"$p^2\ [\mathrm{GeV}^2]$")
     ax.set_ylabel(r"$\tilde{\Pi}(p^2)$")
     ax.set_title(f"HVP  —  {run.label}")
-    ax.grid(True, which="both", ls=":", alpha=0.5)
+    ax.legend(loc="best", frameon=False)
 
     path = os.path.join(outdir, "hvp.pdf")
     fig.savefig(path, bbox_inches="tight")
