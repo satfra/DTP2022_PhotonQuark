@@ -15,7 +15,8 @@
  *   /b      [q,12,k,z]  complex   b_i = (S.Gamma.S) products
  *   /w      [q,3,k,z]   complex   WTI quantities Sigma_A, Delta_A, Delta_B
  *   /w_z0   [q,3,k]     complex   z-averaged WTI quantities
- *   /hvp/p_sq [q], /hvp/Pi [q]    (written later by append_hvp, only with -h)
+ *   /hvp/p_sq [q], /hvp/Pi [q]    (written later by append_hvp, only with -h;
+ *                                  Pi = Pi(p^2) - Pi(0), one colour, unit charge)
  *
  * Root attributes carry all run metadata (flavour, masses, MT params, grid
  * sizes, flags, and the idx->name maps). Complex data uses a compound
@@ -132,14 +133,20 @@ namespace qpv_hdf5
   }
 
   // Append the HVP result to an existing run file (group /hvp).
+  // Pi is Π(p²) − Π(0) per colour and unit charge (see hvp::hvp_driver);
+  // pi_at_zero is the regulator-dependent Π(0), trace_constant the constant C
+  // removed from the traced loop.
   inline void append_hvp(const std::string& path, const vec_double& p_sq,
-                         const vec_double& pi)
+                         const vec_double& pi, double pi_at_zero,
+                         double trace_constant)
   {
     auto file = hdf5::File::open(path, hdf5::Access::ReadWrite);
     auto root = file.root();
     auto g = root.create_group("hvp");
     detail::write_double(g, "p_sq", p_sq);
     detail::write_double(g, "Pi", pi);
+    g.write_attribute("pi_at_zero", pi_at_zero);
+    g.write_attribute("trace_constant", trace_constant);
   }
 
   // Append the quark-DSE solution to an existing run file (group /quark_dse):

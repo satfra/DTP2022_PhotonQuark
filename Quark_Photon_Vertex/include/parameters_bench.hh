@@ -24,6 +24,8 @@ constexpr unsigned q_steps = 8;
 
 constexpr double min_q_sq = 1e-5;
 constexpr double max_q_sq = 1;
+// Coarse q-grid: the HVP low-p² fit (hvp.hh) needs 6 points below this.
+constexpr double hvp_fit_max_p_sq = 0.2;
 
 constexpr double target_acc = 1e-5;
 constexpr unsigned max_steps = 40;

@@ -27,6 +27,7 @@
 // Each is indexed [q_iter][k_idx][z_idx].
 struct HvpBInput {
   tens_cmplx b1, b7, b10;
+  double z2;  // quark wave-function renormalisation (bare outer HVP vertex)
 };
 
 // The k/y/z quadratures are all open-coded against hoisted node/weight tables
@@ -452,16 +453,13 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
   // Do some Legendre Magic
   const Quark quark(fp);
 
-  // Pre-map the y-quadrature once. The y-integration bounds (y_grid[0],
-  // y_grid[y_steps-1]) are fixed for the whole run, so the mapped Legendre
-  // nodes, weights and dx are constant. Hoisting them here lets
-  // precalculate_K_kernel open-code the y-sum instead of calling
-  // qIntegral::operator() (which allocated a fresh std::vector per call via
-  // linearMapTo — ~1e9 allocations per q-point). Same nodes/weights/order as
-  // the old qint1d path, so K' stays bit-identical.
+  // Pre-map the y-quadrature once; hoisting it lets precalculate_K_kernel
+  // open-code the y-sum. y (cosine of the gluon angle) must run over the full
+  // [-1, 1]: the Maris-Tandy IR peak sits near y = ±1, and stopping at the
+  // outermost Legendre nodes costs an O(1/y_steps²) WTI violation.
   static const LegendrePolynomial<y_steps> lp_y_nodes;
-  const double y_a = y_grid[0];
-  const double y_b = y_grid[y_steps - 1];
+  constexpr double y_a = -1.;
+  constexpr double y_b = 1.;
   const double y_dx = 0.5 * (y_b - y_a);
   const vec_double y_weights = lp_y_nodes.weights();
   const vec_double y_nodes = linearMapTo(lp_y_nodes.zeroes(), -1., 1., y_a, y_b);
@@ -666,7 +664,8 @@ HvpBInput iterate_a_and_b(const vec_double &q_grid, const vec_double &z_grid, co
   // needs, indexed [q_iter][k_idx][z_idx], straight from the b buffer.
   HvpBInput hvp_in{tens_cmplx(q_steps, k_steps, z_steps),
                    tens_cmplx(q_steps, k_steps, z_steps),
-                   tens_cmplx(q_steps, k_steps, z_steps)};
+                   tens_cmplx(q_steps, k_steps, z_steps),
+                   quark.z2()};
   for (unsigned q_it = 0; q_it < q_steps; ++q_it)
     for (unsigned k_idx = 0; k_idx < k_steps; ++k_idx)
       for (unsigned z_idx = 0; z_idx < z_steps; ++z_idx) {

@@ -91,5 +91,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/core/include)
 # the subprojects. core is the most important, as it provides the library used for all the other projects that contains basic tasks always needed
 add_subdirectory(Quark_Photon_Vertex)
 
-enable_testing()
-add_subdirectory(tests)
+# tests/ downloads doctest at configure time; switch off on nodes without
+# internet access (e.g. cluster compute nodes).
+option(BUILD_TESTS "Build the unit tests in tests/" ON)
+if(BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

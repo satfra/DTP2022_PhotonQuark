@@ -79,11 +79,27 @@ class Run:
         return tag
 
 
+def _legacy_pi_hat(p_sq: np.ndarray, pi_old: np.ndarray, z2: float,
+                   fit_max_p_sq: float = 1e-2) -> np.ndarray:
+    """Pi(p^2) - Pi(0) from a file written before hvp.hh stored it directly.
+
+    Those files hold half the traced loop T (the y-angle factor 2 was missing
+    from the measure), subtracted at p_sq[0]. Mirrors hvp::hvp_driver: fit
+    T = C + s p^2 + O(p^4) at low p^2, then Pi_hat = z2/3 (s - (T - C)/p^2).
+    """
+    trace = 2.0 * pi_old
+    n = max(int(np.sum(p_sq <= fit_max_p_sq)), 6)
+    C, s = np.polynomial.polynomial.polyfit(p_sq[:n], trace[:n], 3)[:2]
+    return z2 / 3.0 * (s - (trace - C) / p_sq)
+
+
 def open_run(path: str) -> Run:
     with h5py.File(path, "r") as f:
         g = f["grids"]
         hvp_p = f["hvp/p_sq"][:] if "hvp" in f else None
         hvp_pi = f["hvp/Pi"][:] if "hvp" in f else None
+        if hvp_pi is not None and "pi_at_zero" not in f["hvp"].attrs:
+            hvp_pi = _legacy_pi_hat(hvp_p, hvp_pi, float(f.attrs.get("z2", 1.0)))
         dse = None
         if "quark_dse" in f:
             gd = f["quark_dse"]

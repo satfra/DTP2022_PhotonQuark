@@ -1,7 +1,8 @@
 """Hadronic-vacuum-polarisation plot.
 
-Ports the old repo-root plot_hvp.py to the HDF5 layout: log-log plot of the
-renormalised Pi(p^2) vs p^2, masking non-positive Pi (as the original did).
+Left: log-log plot of the renormalised HVP Pi(p^2) - Pi(0) (one colour, unit
+charge). Right: [Pi(p^2) - Pi(0)]/p^2, whose p^2 -> 0 limit is the slope
+Pi'(0); this is the panel to judge low-energy resolution.
 """
 
 from __future__ import annotations
@@ -25,13 +26,16 @@ def plot_hvp(run: Run, outdir: str) -> str | None:
     pi = run.hvp_pi
     mask = pi > 0.0
 
-    fig, ax = plt.subplots(figsize=(5.5, 4))
-    ax.loglog(p_sq[mask], pi[mask], "o-", color="black", ms=4,
-              label=r"$\tilde{\Pi}(p^2)$")
-    ax.set_xlabel(r"$p^2\ [\mathrm{GeV}^2]$")
-    ax.set_ylabel(r"$\tilde{\Pi}(p^2)$")
-    ax.set_title(f"HVP  —  {run.label}")
-    ax.legend(loc="best", frameon=False)
+    fig, (ax_log, ax_slope) = plt.subplots(1, 2, figsize=(11, 4))
+    fig.suptitle(f"HVP  —  {run.label}")
+
+    ax_log.loglog(p_sq[mask], pi[mask], "o-", color="black", ms=4)
+    ax_log.set_xlabel(r"$p^2\ [\mathrm{GeV}^2]$")
+    ax_log.set_ylabel(r"$\hat\Pi(p^2) = \Pi(p^2) - \Pi(0)$")
+
+    ax_slope.semilogx(p_sq, pi / p_sq, "o-", color="black", ms=4)
+    ax_slope.set_xlabel(r"$p^2\ [\mathrm{GeV}^2]$")
+    ax_slope.set_ylabel(r"$\hat\Pi(p^2)\,/\,p^2\ [\mathrm{GeV}^{-2}]$")
 
     path = os.path.join(outdir, "hvp.pdf")
     fig.savefig(path, bbox_inches="tight")
