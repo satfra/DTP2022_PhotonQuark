@@ -10,7 +10,8 @@
 
 #include "Utils.hh"
 #include "types.hh"
-#include "fileIO.hh"
+#include "hdf5IO.hh"
+#include "iteration.hh"
 #include "parameters.hh"
 #include "QuadratureIntegral.hh"
 #include "LegendrePolynomials.hh"
@@ -19,60 +20,6 @@
 
 namespace hvp
 {
-  // Reads b_file_idx_<idx>.dat (written by saveToFile_withGrids in fileIO.hh)
-  // and returns the b-tensor indexed [q_iter][k_idx][z_idx]. Mirrors the
-  // file layout: header line starting with '#', then for each q_sq one
-  // block of (k_steps × z_steps) lines "q_sq i k_sq z Re Im", separated
-  // from the next block by a blank line.
-  inline tens_cmplx load_b_from_file(unsigned idx)
-  {
-    using namespace parameters::numerical;
-    const std::string fname = "b_file_idx_" + std::to_string(idx) + ".dat";
-    std::ifstream in(fname);
-    if (!in)
-      throw std::runtime_error("hvp: cannot open " + fname);
-
-    tens_cmplx out(q_steps, k_steps, z_steps);
-
-    unsigned q_iter = 0;
-    unsigned points_in_block = 0;
-    std::string line;
-    while (std::getline(in, line))
-    {
-      if (line.empty() || line[0] == '#')
-      {
-        if (points_in_block > 0)
-        {
-          if (points_in_block != k_steps * z_steps)
-            throw std::runtime_error("hvp: malformed block in " + fname);
-          ++q_iter;
-          points_in_block = 0;
-        }
-        continue;
-      }
-
-      std::istringstream iss(line);
-      double q_sq, k_sq, z, re, im;
-      unsigned i_dummy;
-      if (!(iss >> q_sq >> i_dummy >> k_sq >> z >> re >> im))
-        throw std::runtime_error("hvp: parse error in " + fname);
-
-      const unsigned k_idx = points_in_block / z_steps;
-      const unsigned z_idx = points_in_block % z_steps;
-      if (q_iter >= q_steps)
-        throw std::runtime_error("hvp: more q-blocks in " + fname + " than q_steps");
-      out[q_iter][k_idx][z_idx] = std::complex<double>(re, im);
-      ++points_in_block;
-    }
-    if (points_in_block == k_steps * z_steps)
-      ++q_iter;
-
-    if (q_iter != q_steps)
-      throw std::runtime_error("hvp: " + fname + " has " + std::to_string(q_iter)
-          + " q-blocks, expected " + std::to_string(q_steps));
-    return out;
-  }
-
   // Computes the renormalised hadronic-vacuum-polarisation loop on the
   // existing q_grid. The b's already contain the quark propagators
   // (b ≡ S·Γ·S, see literature/3-Quark-Photon-Vertex.pdf), so the
@@ -84,10 +31,9 @@ namespace hvp
   //   tr = 4·√2·b₁ + 4·b₇ + 4·b₁₀
   // ↔ b[0], b[6], b[9] in the code's 0-indexed tensor.
   //
-  // The subtraction Π̃(p²) = ∫ [tr(k,p²) − tr(k,p²_min)] · measure
-  // is performed *inside* the integral so the divergent parts cancel
-  // at the integrand level, leaving a well-defined finite integrand.
-  // The renormalisation point is q_grid[0] (= parameters::numerical::min_q_sq).
+  // The integrand subtracts tr(k, p²_min) at p²_min = q_grid[0] so the
+  // quadratically divergent parts cancel pointwise; the remaining constant
+  // is absorbed into C by fit_low_p_sq.
   //
   // Quadrature: Legendre in log(k'²), Cheb2 in z' — the latter coincides
   // with z_grid by construction. b1/b7/b10 are cubic-splined in log(k'²)
@@ -178,8 +124,9 @@ namespace hvp
 
           // 4D Euclidean measure with log-k² Jacobian (k'⁴ from
           // (1/2)·k² dk² → (k²)² d(log k²)). √(1−z'²) is the Cheb2 weight,
-          // baked into z_weights; do not include it here.
-          const double measure = int_factors * 2. * M_PI * k_quad_powr2[q];
+          // baked into z_weights; do not include it here. The integrand is
+          // independent of the remaining angles: ∫dφ = 2π and ∫dy = 2.
+          const double measure = int_factors * 4. * M_PI * k_quad_powr2[q];
           partial += k_unit_weights[q] * (trace_p - trace_ren) * measure;
         }
         partial *= dk;
@@ -191,33 +138,80 @@ namespace hvp
     return pi_values;
   }
 
-  // Top-level driver: load b₁,b₇,b₁₀ from disk, compute Π̃(p²) with
-  // the subtraction baked into the integrand, and write hvp.dat.
-  inline void hvp_driver(const vec_double& q_grid,
+  // Low-p² fit  T(p²) = C + s·p² + O(p⁴)  of the traced loop T computed by
+  // compute_hvp_pi. C is the (regulator-dependent) quadratic divergence left
+  // in the trace, s = −3Π(0)/Z₂ the log-divergent Π(0). A cubic in p² is
+  // least-squares fitted to all points with p² ≤ hvp_fit_max_p_sq; p² is
+  // rescaled to [0, 1] for conditioning.
+  struct LowPSqFit { double C, s; };
+
+  inline LowPSqFit fit_low_p_sq(const vec_double& p_sq, const vec_double& T)
+  {
+    using parameters::numerical::hvp_fit_max_p_sq;
+    constexpr unsigned n_coeff = 4;
+
+    unsigned n = 0;
+    while (n < p_sq.size() && p_sq[n] <= hvp_fit_max_p_sq) ++n;
+    if (n < n_coeff + 2)
+      throw std::runtime_error("hvp: need at least 6 q-grid points with p² <= "
+                               "hvp_fit_max_p_sq for the p² -> 0 fit");
+    const double scale = p_sq[n - 1];
+
+    // normal equations  (VᵀV) c = Vᵀ T  for the Vandermonde matrix V
+    double M[n_coeff][n_coeff + 1] = {};
+    for (unsigned r = 0; r < n; ++r) {
+      double pw[n_coeff];
+      pw[0] = 1.;
+      for (unsigned i = 1; i < n_coeff; ++i) pw[i] = pw[i - 1] * p_sq[r] / scale;
+      for (unsigned i = 0; i < n_coeff; ++i) {
+        for (unsigned j = 0; j < n_coeff; ++j) M[i][j] += pw[i] * pw[j];
+        M[i][n_coeff] += pw[i] * T[r];
+      }
+    }
+    // Gaussian elimination with partial pivoting
+    for (unsigned c = 0; c < n_coeff; ++c) {
+      unsigned piv = c;
+      for (unsigned r = c + 1; r < n_coeff; ++r)
+        if (std::abs(M[r][c]) > std::abs(M[piv][c])) piv = r;
+      std::swap(M[c], M[piv]);
+      for (unsigned r = 0; r < n_coeff; ++r) {
+        if (r == c) continue;
+        const double f = M[r][c] / M[c][c];
+        for (unsigned j = c; j <= n_coeff; ++j) M[r][j] -= f * M[c][j];
+      }
+    }
+    return {M[0][n_coeff] / M[0][0], M[1][n_coeff] / M[1][1] / scale};
+  }
+
+  // Top-level driver: take b₁,b₇,b₁₀ (in memory, from iterate_a_and_b),
+  // compute the traced loop T(p²), and store the renormalised HVP
+  //   Π̂(p²) = Π(p²) − Π(0) = (Z₂/3) · [ s − (T(p²) − C) / p² ]
+  // (one colour, unit charge; see fit_low_p_sq for C and s) under /hvp.
+  // Normalisation: Π_μν = −Z₂ ∫ tr[γ_μ S Γ_ν S] = (p²δ_μν − p_μp_ν) Π(p²), and
+  // T = ∫ tr[γ_μ S Γ_μ S] = −3p²Π/Z₂ + C. At large p², Π̂ → ln(p²)/(12π²).
+  inline void hvp_driver(const HvpBInput& b_in,
+                         const vec_double& q_grid,
                          const vec_double& k_grid,
-                         const vec_double& z_grid)
+                         const vec_double& z_grid,
+                         const std::string& h5_path)
   {
     std::cout << "\n_____________________________________\n\n"
               << "Calculating the hadronic vacuum polarisation...\n";
 
-    std::cout << " Loading b_1, b_7, b_10 from disk..." << std::flush;
-    const tens_cmplx b1  = load_b_from_file(0);
-    const tens_cmplx b7  = load_b_from_file(6);
-    const tens_cmplx b10 = load_b_from_file(9);
-    std::cout << " done\n";
-
     std::cout << " Integrating the loop on the q grid..." << std::flush;
-    const vec_double pi_renorm = compute_hvp_pi(b1, b7, b10, q_grid, k_grid, z_grid);
+    const vec_double trace =
+        compute_hvp_pi(b_in.b1, b_in.b7, b_in.b10, q_grid, k_grid, z_grid);
     std::cout << " done\n";
 
-    const std::string out_file = "hvp.dat";
-    std::ofstream fs(out_file, std::ofstream::out | std::ofstream::trunc);
-    fs << "#p_sq Pi_renormalised\n";
-    for (unsigned i = 0; i < q_grid.size(); ++i)
-      fs << q_grid[i] << " " << pi_renorm[i] << "\n";
-    fs.close();
+    const LowPSqFit fit = fit_low_p_sq(q_grid, trace);
+    vec_double pi_hat(q_grid.size());
+    for (std::size_t i = 0; i < q_grid.size(); ++i)
+      pi_hat[i] = b_in.z2 / 3. * (fit.s - (trace[i] - fit.C) / q_grid[i]);
+    const double pi_at_zero = -b_in.z2 / 3. * fit.s;
 
-    std::cout << " HVP written to " << out_file
-              << "  (renormalised at p² = " << q_grid.front() << ")\n";
+    qpv_hdf5::append_hvp(h5_path, q_grid, pi_hat, pi_at_zero, fit.C);
+
+    std::cout << " HVP written to " << h5_path << " (/hvp)"
+              << "  (Pi(p^2) - Pi(0); unrenormalised Pi(0) = " << pi_at_zero << ")\n";
   }
 } // namespace hvp

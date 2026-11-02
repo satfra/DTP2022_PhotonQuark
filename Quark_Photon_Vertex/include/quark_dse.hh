@@ -15,7 +15,8 @@
 // ---------------------------------------------------------------------------
 inline tens_double init_brl_angular_matrix(double mu,
     const vec_double &dse_absci_q, const vec_double &dse_weights_q,
-    const vec_double &dse_absci_ang, const vec_double &dse_weights_ang)
+    const vec_double &dse_absci_ang, const vec_double &dse_weights_ang,
+    const double eta_mt, const double lambda_mt)
 {
     tens_double temp(2);
     mat_double temp_mat(parameters::numerical::quark_dse_steps_q);
@@ -46,7 +47,7 @@ inline tens_double init_brl_angular_matrix(double mu,
                 const double pq = p * q * z;
                 const double kk = p * p + q * q - 2.0 * p * q * z;
 
-                const double mt = maris_tandy_alpha(kk);
+                const double mt = maris_tandy_alpha(kk, eta_mt, lambda_mt);
 
                 sa += dse_weights_ang[ang_i] *
                         dse_weights_q[qidx] *
@@ -110,7 +111,8 @@ inline double brl_integrate_coupled_b(int pidx, const vec_double &a_values,
     return s_b;
 }
 
-inline mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, double mu)
+inline mat_double quark_iterate_dressing_functions(double a0, double b0, double mc, double mu,
+    const double eta_mt, const double lambda_mt)
 {
     /*
      * Iterates the quark dressing functions A and B until convergence.
@@ -153,7 +155,7 @@ inline mat_double quark_iterate_dressing_functions(double a0, double b0, double 
      * Pre-compute the angular matrix once; it's the same for every iteration.
      */
     tens_double angular_matrix = init_brl_angular_matrix(
-        mu, dse_absci_q, dse_weights_q, dse_absci_z, dse_weights_z);
+        mu, dse_absci_q, dse_weights_q, dse_absci_z, dse_weights_z, eta_mt, lambda_mt);
 
     double current_acc, a_start, b_start, a_end, b_end, sigma_a, sigma_b;
     vec_double renorm = {1.0, 1.0};

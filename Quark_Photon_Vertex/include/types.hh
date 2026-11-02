@@ -191,6 +191,19 @@ public:
 
   std::size_t bytes() const { return data_.size() * sizeof(T); }
   std::size_t n_slots() const { return n_slots_; }
+
+  // Raw-storage accessors for OpenACC offload: the compute region operates on
+  // the flat buffer + the (i,j)->slot table directly, so it never has to map
+  // the class object (with its std::vector/std::array members) to the device.
+  // The flat layout matches flat(): ((((slot*d1_ + k)*d2_ + z)*d4_ + kp)*d5_ + zp).
+  T* data() { return data_.data(); }
+  const T* data() const { return data_.data(); }
+  std::size_t size() const { return data_.size(); }
+  int slot_of(unsigned i, unsigned j) const { return ij_to_slot_[i * 12 + j]; }
+  std::size_t d1() const { return d1_; }
+  std::size_t d2() const { return d2_; }
+  std::size_t d4() const { return d4_; }
+  std::size_t d5() const { return d5_; }
 };
 
 using tens_cmplx = Tensor3<std::complex<double>>;

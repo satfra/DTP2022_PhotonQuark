@@ -14,32 +14,36 @@ namespace numerical {
 constexpr unsigned k_steps = 128;
 // The number of steps in the z/z' grid
 constexpr unsigned z_steps = 32;
-// The number of steps in the y grid
+// The number of steps in the y grid (gluon angle). WTIs are converged from
+// y ≈ 12 on; 32 leaves margin. k_steps = 128 is what the bottom quark needs.
 constexpr unsigned y_steps = 32;
 // The number of steps in the Q grid
-constexpr unsigned q_steps = 32;
+constexpr unsigned q_steps = 48;
 
-constexpr double min_q_sq = 1e-5;
-constexpr double max_q_sq = 1;
+// Π(Q²) − Π(0) is linear in Q² below ~1e-2 GeV²; points far below that only
+// anchor the Π(0) fit in hvp.hh, and below ~1e-4 they are noise-dominated.
+constexpr double min_q_sq = 1e-4;
+constexpr double max_q_sq = 4;
+// Upper end of the low-p² fit that extracts Π(0) for the HVP (hvp.hh);
+// needs ≥ 6 q-grid points below it.
+constexpr double hvp_fit_max_p_sq = 1e-2;
 
 // Target accuracy for the iteration
-constexpr double target_acc = 1e-5;
+constexpr double target_acc = 1e-7;
 // Maximum number of iteration steps
 constexpr unsigned max_steps = 100;
 
 // IR bias for the log(k²) grid built in Simulation.cpp. Maps u ∈ [0,1]
 // through f(u) = α·u + (1−α)·u³ with α = k_grid_ir_bias. α = 1 reproduces
-// the uniform-log grid; α < 1 packs more points near lambda_IR. α = 0.3
-// gives ≈3.3× IR density and ≈2.06× as many points in the first three
-// decades above lambda_IR (where the WTI2 residual lives), at the cost of
-// a 1.32× wider UV step than the uniform grid.
-constexpr double k_grid_ir_bias = 0.3;
+// the uniform-log grid; α < 1 packs more points near lambda_IR. Scans showed
+// no WTI gain from α < 1, so the uniform grid is the default.
+constexpr double k_grid_ir_bias = 1.0;
 
 // Grid for the quark propagator dse
-constexpr unsigned quark_dse_steps_q = 1000;
+constexpr unsigned quark_dse_steps_q = 1024;
 constexpr unsigned quark_dse_steps_z = 256;
-constexpr unsigned quark_dse_max_steps = 200;
-constexpr double quark_dse_acc = 1e-8;
+constexpr unsigned quark_dse_max_steps = 500;
+constexpr double quark_dse_acc = 1e-9;
 
 // number of tensor structures, is ALWAYS fixed to 12, don't change
 constexpr unsigned int n_structs = 12;

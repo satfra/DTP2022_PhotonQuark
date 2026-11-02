@@ -40,7 +40,12 @@ class lInterpolator
   private:
     const Range& x;
     const Grid& f;
-    const RF& a,b;
+    // Both endpoints are held BY VALUE. This was `const RF& a,b;`, where the `&`
+    // binds to the declarator and not the type — so `a` was a reference and `b`
+    // a value. Besides the asymmetry, `a(x.front())` binds to a temporary
+    // whenever RF != RF_f (the conversion result), which dangles once the
+    // constructor returns. RF is a scalar here, so copying is free.
+    const RF a, b;
 };
 
 // 2-D bilinear interpolator templated on the grid container. Accepts both
